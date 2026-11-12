@@ -1,6 +1,6 @@
-import { Group, Skeleton, Stack, Text } from '@mantine/core';
+import { Group, Skeleton, Text } from '@mantine/core';
 import type { EventEntry } from '@ein/api';
-import { RoutePanel } from '@ein/ui/components';
+import { RollingList, RoutePanel } from '@ein/ui/components';
 import { useLocalDay, usePolledCommand } from '@ein/ui/hooks';
 import { shq } from '@ein/ui/lib';
 import { useSearchParams } from 'react-router-dom';
@@ -15,7 +15,8 @@ const EVERY_MS = 30 * 60_000;
  * `/cards/dashboard/coming-up`: what falls on the days ahead from every module that tells of events
  * (core's `events`) — birthdays, anniversaries, todos falling due — or only from the providers
  * `only` names (`events --source`), each drawn by its module's own route with when it falls beside
- * it, today's in the accent. Read on the viewer's own day, again as the day turns.
+ * it, today's in the accent; what does not fit rolls by. Read on the viewer's own day, again as
+ * the day turns.
  */
 export default function ComingUpCard() {
   const [params] = useSearchParams();
@@ -29,7 +30,7 @@ export default function ComingUpCard() {
   if (events.data.length === 0) return <Quiet icon='calendar-event'>Nothing in the next {days} days</Quiet>;
 
   return (
-    <Stack gap='0.55em' h='100%' style={{ overflow: 'auto' }}>
+    <RollingList gap='0.55em'>
       {events.data.map((entry) => {
         const away = daysBetween(today, entry.date);
         return (
@@ -48,6 +49,6 @@ export default function ComingUpCard() {
           </Group>
         );
       })}
-    </Stack>
+    </RollingList>
   );
 }

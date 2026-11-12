@@ -1,6 +1,6 @@
 import { Group, Skeleton, Stack, Text } from '@mantine/core';
 import type { NewsEntry } from '@ein/api';
-import { RoutePanel, TablerIcon } from '@ein/ui/components';
+import { RollingList, RoutePanel, TablerIcon } from '@ein/ui/components';
 import { usePolledCommand } from '@ein/ui/hooks';
 import { useSearchParams } from 'react-router-dom';
 import { Quiet } from '../components/CardTile.tsx';
@@ -9,7 +9,8 @@ import '../dashboard.css';
 
 /**
  * `/cards/dashboard/news`: what was added lately (core's `news`) — albums made, and whatever else
- * the modules tell of — newest first, each drawn by its module's own route, with how long ago.
+ * the modules tell of — newest first, each drawn by its module's own route, with how long ago;
+ * what does not fit rolls by.
  */
 export default function NewsCard() {
   const [params] = useSearchParams();
@@ -19,7 +20,7 @@ export default function NewsCard() {
   if (!news.data) return news.error ? <Quiet icon='news'>{news.error.message}</Quiet> : <Skeleton height='60%' radius='md' />;
   if (news.data.length === 0) return <Quiet icon='news'>Nothing new lately</Quiet>;
   return (
-    <Stack gap='0.7em' h='100%' style={{ overflow: 'auto' }}>
+    <RollingList gap='0.7em'>
       {news.data.map((entry) => (
         <Group key={`${entry.source}\n${entry.route}`} gap='sm' wrap='nowrap' align='flex-start'>
           <TablerIcon name={entry.icon ?? 'sparkles'} size={18} style={{ color: 'var(--dash-accent)', flex: 'none', marginTop: 4 }} />
@@ -29,6 +30,6 @@ export default function NewsCard() {
           </Stack>
         </Group>
       ))}
-    </Stack>
+    </RollingList>
   );
 }
