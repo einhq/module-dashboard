@@ -1,5 +1,5 @@
 {
-  "note": "Questions for agent-eval, each asked once as the account running it (or --user), with `context` as what the app shows. `commands` are those that do the job: reaching any of them counts, and none means the question is answered without one. `resolvers` turn a name into a path, so calling one first is not a wrong first choice. The questions name a dashboard called Kitchen.",
+  "note": "Questions for agent-eval, each asked once as the account running it (or --user), with `context` as what the app shows. `commands` are those that do the job: reaching any of them counts, and none means the question is answered without one. `resolvers` turn a name into a path, so calling one first is not a wrong first choice. The questions name a dashboard called Kitchen, with a note on it and nothing else.",
   "resolvers": [
     "dashboards",
     "dashboard-show",
