@@ -147,8 +147,9 @@
   background: color-mix(in srgb, var(--mrx-accent) 7%, transparent);
 }
 
-/* The wall: the hat field behind glass tiles, filling the screen. */
-.dash-wall {
+/* The wall: the hat field behind glass tiles, filling the screen. Named with the pattern's class,
+ * which would otherwise keep it in the flow at no height. */
+.dash-wall.mrx-pattern {
   position: fixed;
   inset: 0;
   overflow: hidden;

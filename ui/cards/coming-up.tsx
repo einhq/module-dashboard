@@ -30,17 +30,16 @@ export default function ComingUpCard() {
   if (shown.length === 0) return <Quiet icon='calendar-event'>Nothing in the next {days} days</Quiet>;
 
   return (
-    <Stack gap='0.55em' h='100%' style={{ overflow: 'auto', fontSize: 'clamp(0.85rem, 4.2cqmin, 1.4rem)' }}>
+    <Stack gap='0.55em' h='100%' style={{ overflow: 'auto' }}>
       {shown.map((entry) => {
         const away = daysBetween(today, entry.date);
         return (
           <Group key={`${entry.source}\n${entry.route}`} gap='xs' wrap='nowrap' justify='space-between' align='center'>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <RoutePanel path={entry.route} loading={<Skeleton height={30} radius='xl' />} failed={<Text lineClamp={2} inherit>{entry.title}</Text>} />
+              <RoutePanel path={entry.route} loading={<Skeleton height={30} radius='xl' />} failed={<Text size='sm' lineClamp={2}>{entry.title}</Text>} />
             </div>
             <Text
-              inherit
-              size='0.85em'
+              size='clamp(0.75rem, 3.4cqmin, 1.1rem)'
               fw={away === 0 ? 650 : 500}
               c={away === 0 ? 'color-mix(in srgb, var(--dash-accent) 75%, white)' : 'dimmed'}
               style={{ flex: 'none', fontWeight: entry.milestone ? 700 : undefined }}
