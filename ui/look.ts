@@ -52,3 +52,6 @@ export const mantineOf = (color: DashboardColor): string => MANTINE[color] ?? 'm
 
 /** A Mantine colour as the CSS a tile's accent is, at the shade that carries on a dark surface. */
 export const accentOf = (mantine: string): string => `var(--mantine-color-${mantine}-4)`;
+
+/** What a device card says when it cannot read its device: a refusal in words, anything else as it came. */
+export const deviceProblem = (error: Error): string => /access denied/i.test(error.message) ? 'Whoever looks at this dashboard may not read this device.' : error.message;

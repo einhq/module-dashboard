@@ -5,6 +5,7 @@ import { useElementWidth, usePolledCommand } from '@ein/ui/hooks';
 import { shq } from '@ein/ui/lib';
 import { useSearchParams } from 'react-router-dom';
 import { Quiet } from '../components/CardTile.tsx';
+import { deviceProblem } from '../look.ts';
 import '../dashboard.css';
 
 /** How wide an endpoint's tile is at least: past this the card fits another beside it. */
@@ -23,7 +24,7 @@ export default function DeviceCard() {
   const info = usePolledCommand<DeviceInfo>(`device-show ${shq(device)}`, device !== '');
   const [measure, width] = useElementWidth<HTMLDivElement>();
 
-  if (!info.data) return info.error ? <Quiet icon='plug-x'>{info.error.message}</Quiet> : <Skeleton height='70%' radius='md' />;
+  if (!info.data) return info.error ? <Quiet icon='plug-x'>{deviceProblem(info.error)}</Quiet> : <Skeleton height='70%' radius='md' />;
   const endpoints = info.data.endpointList.filter((endpoint) =>
     chosen.length > 0 ? chosen.includes(endpoint.name) : !endpoint.retired && endpoint.supported && endpoint.category === undefined
   );

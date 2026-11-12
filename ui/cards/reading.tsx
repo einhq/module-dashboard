@@ -5,6 +5,7 @@ import { agoText, readingText, shq } from '@ein/ui/lib';
 import { useId } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Quiet } from '../components/CardTile.tsx';
+import { deviceProblem } from '../look.ts';
 import '../dashboard.css';
 
 /** The interval a reading's history is summed up in, for so many hours of it: a hundred-odd points either way. */
@@ -50,7 +51,7 @@ export default function ReadingCard() {
     10 * 60_000,
   );
 
-  if (!info.data) return info.error ? <Quiet icon='gauge'>{info.error.message}</Quiet> : <Skeleton height='70%' radius='md' />;
+  if (!info.data) return info.error ? <Quiet icon='gauge'>{deviceProblem(info.error)}</Quiet> : <Skeleton height='70%' radius='md' />;
   const endpoint = info.data.endpointList.find((each) => each.name === name);
   if (!endpoint) return <Quiet icon='gauge'>{info.data.label} has no reading {name}</Quiet>;
   const values = (history.data?.readings ?? []).map((reading) => reading.value).filter((value): value is number => typeof value === 'number');
