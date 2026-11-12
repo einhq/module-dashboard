@@ -1,0 +1,98 @@
+#!ts
+/** dashboard-set — change a dashboard's title, colour, description, columns or wall. */
+import type { CmdReturn, Command } from '@ein/client';
+import { collectUnknownFlags, parseArgs, reportUnknownFlags, shq } from '@ein/client';
+import type { Dashboard, DashboardColor } from '@dashboard/api';
+import { readCatalog } from '@dashboard/catalog';
+import { COLUMN_CHOICES, fitSize } from '@dashboard/layout';
+import { accountNames, offersById, showDashboard } from '@dashboard/show';
+import { checkTitle, COLORS, DashboardError, dashboardPath, DASHBOARDS_ROOT, fail, readDashboard, titleOf, writeDashboard } from '@dashboard/store';
+
+const DIM = /^(\d{2}:\d{2})-(\d{2}:\d{2})(?:@(0?\.\d+|1(?:\.0+)?))?$/;
+
+const dashboardSet = async (cmd: Command): CmdReturn => {
+  const unknown: string[] = [];
+  const flags = parseArgs(cmd.args, {
+    string: ['title', 'color', 'description', 'columns', 'effects', 'dim'],
+    boolean: ['no-dim'],
+    unknown: collectUnknownFlags(unknown),
+  });
+  if (await reportUnknownFlags(cmd, unknown)) return 1;
+  try {
+    const ref = flags._[0] as string | undefined;
+    if (!ref) throw new DashboardError('which dashboard? Give its title or path');
+    let path = dashboardPath(ref);
+    const { file } = await readDashboard(cmd, path);
+
+    const attrs: Record<string, unknown> = {};
+    if (flags.color !== undefined) {
+      if (!COLORS.includes(flags.color as DashboardColor)) throw new DashboardError(`--color is one of ${COLORS.join(', ')}`);
+      attrs.color = flags.color;
+    }
+    if (flags.description !== undefined) attrs.description = flags.description || undefined;
+
+    let layoutChanged = false;
+    if (flags.columns !== undefined) {
+      const columns = Number(flags.columns);
+      if (!(COLUMN_CHOICES as readonly number[]).includes(columns)) throw new DashboardError(`--columns is one of ${COLUMN_CHOICES.join(', ')}`);
+      file.columns = columns;
+      file.cards = file.cards.map((card) => ({ ...card, size: fitSize(card.size, columns) }));
+      layoutChanged = true;
+    }
+    if (flags.effects !== undefined) {
+      if (flags.effects !== 'full' && flags.effects !== 'light') throw new DashboardError('--effects is full or light');
+      file.wall = { ...file.wall, effects: flags.effects };
+      layoutChanged = true;
+    }
+    if (flags.dim !== undefined && flags['no-dim']) throw new DashboardError('--dim and --no-dim say opposite things');
+    if (flags.dim !== undefined) {
+      const match = DIM.exec(flags.dim);
+      if (!match) throw new DashboardError('--dim is HH:MM-HH:MM, and @level to dim to, such as 22:30-06:30@0.3');
+      file.wall = { ...file.wall, dim: { from: match[1], to: match[2], level: match[3] ? Number(match[3]) : 0.35 } };
+      layoutChanged = true;
+    }
+    if (flags['no-dim']) {
+      const { dim: _dim, ...rest } = file.wall;
+      file.wall = rest;
+      layoutChanged = true;
+    }
+
+    if (layoutChanged) await writeDashboard(cmd, path, file);
+    if (Object.keys(attrs).length > 0) await cmd.sys.vfs.update(cmd.access, path, { attrs });
+    if (flags.title !== undefined && checkTitle(flags.title) !== titleOf(path)) {
+      const to = `${DASHBOARDS_ROOT}/${checkTitle(flags.title)}.yaml`;
+      if (await cmd.sys.vfs.exists(cmd.access, to)) throw new DashboardError(`there is a dashboard called ${checkTitle(flags.title)} already`);
+      const moved = await cmd.execute(`mv ${shq(path)} ${shq(to)}`);
+      if (moved.code !== 0) throw new DashboardError(moved.stderr.trim() || 'it could not be renamed');
+      path = to;
+    }
+
+    const read = await readDashboard(cmd, path);
+    const shown = showDashboard(cmd, path, read.node, read.file, offersById((await readCatalog(cmd)).offers), await accountNames(cmd));
+    if (cmd.json) await cmd.writeJSON(shown satisfies Dashboard);
+    else await cmd.writeLn(path);
+    return 0;
+  } catch (error) {
+    return await fail(cmd, 'dashboard-set', error);
+  }
+};
+
+dashboardSet.spec = {
+  name: 'dashboard-set',
+  effect: 'write' as const,
+  description: "Change a dashboard's title, colour, description, columns or wall",
+  args: [{ name: 'dashboard', type: 'string' as const, description: 'its title, or its path under /archive/dashboards' }],
+  flags: [
+    { name: 'title', type: 'string' as const, description: 'a new title, which renames its file' },
+    { name: 'color', type: 'string' as const, description: `its colour: ${COLORS.join(', ')}` },
+    { name: 'description', type: 'string' as const, description: 'a line about it; empty takes it away' },
+    { name: 'columns', type: 'string' as const, description: `cells across: ${COLUMN_CHOICES.join(', ')}` },
+    { name: 'effects', type: 'string' as const, description: 'full, or light: no blur behind the tiles on its wall, for a slow screen' },
+    { name: 'dim', type: 'string' as const, description: 'dim its wall between two times, to a level: 22:30-06:30@0.3' },
+    { name: 'no-dim', type: 'bool' as const, description: 'never dim its wall' },
+  ],
+  examples: ['dashboard-set Kitchen --color device', "dashboard-set Kitchen --title 'Kitchen wall' --dim 22:30-06:30@0.3"],
+  returns: 'The dashboard, as dashboard-show answers.',
+};
+
+export default dashboardSet;

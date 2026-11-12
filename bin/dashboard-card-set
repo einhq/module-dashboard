@@ -1,0 +1,84 @@
+#!ts
+/** dashboard-card-set — change a card on a dashboard: its size, title, what it shows, or its place. */
+import type { CmdReturn, Command } from '@ein/client';
+import { collectUnknownFlags, parseArgs, reportUnknownFlags } from '@ein/client';
+import type { ShownCard } from '@dashboard/api';
+import { readCatalog } from '@dashboard/catalog';
+import { changedValues, checkSize, parseSize } from '@dashboard/edit';
+import { fitSize } from '@dashboard/layout';
+import { offersById, shownCard } from '@dashboard/show';
+import { DashboardError, dashboardPath, fail, readDashboard, writeDashboard } from '@dashboard/store';
+
+const dashboardCardSet = async (cmd: Command): CmdReturn => {
+  const unknown: string[] = [];
+  const flags = parseArgs(cmd.args, {
+    string: ['size', 'title', 'to'],
+    boolean: ['no-title', 'card-title'],
+    collect: ['with', 'without'],
+    unknown: collectUnknownFlags(unknown),
+  });
+  if (await reportUnknownFlags(cmd, unknown)) return 1;
+  try {
+    const [ref, id] = flags._.map(String);
+    if (!ref || !id) throw new DashboardError("give the dashboard and the card's id: dashboard-card-set Kitchen k7q2 --size 4x3");
+    if ([flags.title !== undefined, flags['no-title'], flags['card-title']].filter(Boolean).length > 1) {
+      throw new DashboardError('give one of --title, --no-title and --card-title');
+    }
+    const path = dashboardPath(ref);
+    const { file } = await readDashboard(cmd, path);
+    const at = file.cards.findIndex((card) => card.id === id);
+    if (at === -1) throw new DashboardError(`${path} has no card ${id}`);
+    const card = { ...file.cards[at] };
+    const offers = offersById((await readCatalog(cmd)).offers);
+    const offer = offers.get(card.card);
+
+    if (flags.size) card.size = fitSize(offer ? checkSize(offer, parseSize(flags.size)) : parseSize(flags.size), file.columns);
+    if (flags.title !== undefined) card.title = flags.title;
+    if (flags['no-title']) card.title = false;
+    if (flags['card-title']) delete card.title;
+    const given = (flags.with as string[] | undefined)?.map(String) ?? [];
+    const without = (flags.without as string[] | undefined)?.map(String) ?? [];
+    if (given.length > 0 || without.length > 0) {
+      if (!offer) throw new DashboardError(`no module offers ${card.card} now, so what it shows cannot be checked`);
+      const values = changedValues(offer, card.with ?? {}, given, without);
+      if (Object.keys(values).length > 0) card.with = values;
+      else delete card.with;
+    }
+
+    file.cards.splice(at, 1);
+    const to = flags.to === undefined ? at : Number(flags.to);
+    if (!Number.isInteger(to) || to < 0) throw new DashboardError('--to is a place on the dashboard, from 0');
+    file.cards.splice(Math.min(to, file.cards.length), 0, card);
+    await writeDashboard(cmd, path, file);
+
+    const shown = shownCard(card, offers);
+    if (cmd.json) await cmd.writeJSON(shown satisfies ShownCard);
+    else await cmd.writeLn(`${card.id}  ${card.card}  ${card.size.join('x')}`);
+    return 0;
+  } catch (error) {
+    return await fail(cmd, 'dashboard-card-set', error);
+  }
+};
+
+dashboardCardSet.spec = {
+  name: 'dashboard-card-set',
+  effect: 'write' as const,
+  description: 'Change a card on a dashboard: its size, title, what it shows, or its place',
+  args: [
+    { name: 'dashboard', type: 'string' as const, description: 'its title, or its path under /archive/dashboards' },
+    { name: 'id', type: 'string' as const, description: "the card's id, as dashboard-show lists it" },
+  ],
+  flags: [
+    { name: 'size', type: 'string' as const, description: '<columns>x<rows>, such as 4x3' },
+    { name: 'title', type: 'string' as const, description: "its header's title in place of the card's name" },
+    { name: 'no-title', type: 'bool' as const, description: 'no header at all' },
+    { name: 'card-title', type: 'bool' as const, description: "the card's own name in its header again" },
+    { name: 'with', type: 'string' as const, description: 'key=value: what it shows, as the card takes it; again for each', repeatable: true },
+    { name: 'without', type: 'string' as const, description: 'a setting to take away, back to its default; again for each', repeatable: true },
+    { name: 'to', type: 'string' as const, description: 'its new place among the cards, from 0' },
+  ],
+  examples: ['dashboard-card-set Kitchen k7q2 --size 6x4', 'dashboard-card-set Kitchen k7q2 --to 0', 'dashboard-card-set Kitchen k7q2 --with days=7'],
+  returns: 'The card as dashboard-show shows it.',
+};
+
+export default dashboardCardSet;

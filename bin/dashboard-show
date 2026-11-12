@@ -1,0 +1,45 @@
+#!ts
+/** dashboard-show — one dashboard: its cards in order, each with the route it is drawn with, and what in its file could not be read. */
+import type { CmdReturn, Command } from '@ein/client';
+import { collectUnknownFlags, parseArgs, reportUnknownFlags } from '@ein/client';
+import type { Dashboard } from '@dashboard/api';
+import { readCatalog } from '@dashboard/catalog';
+import { accountNames, offersById, showDashboard } from '@dashboard/show';
+import { DashboardError, dashboardPath, fail, readDashboard } from '@dashboard/store';
+
+const dashboardShow = async (cmd: Command): CmdReturn => {
+  const unknown: string[] = [];
+  const flags = parseArgs(cmd.args, { unknown: collectUnknownFlags(unknown) });
+  if (await reportUnknownFlags(cmd, unknown)) return 1;
+  try {
+    const ref = flags._[0] as string | undefined;
+    if (!ref) throw new DashboardError('which dashboard? Give its title or path');
+    const path = dashboardPath(ref);
+    const { node, file } = await readDashboard(cmd, path);
+    const shown = showDashboard(cmd, path, node, file, offersById((await readCatalog(cmd)).offers), await accountNames(cmd));
+    if (cmd.json) await cmd.writeJSON(shown satisfies Dashboard);
+    else {
+      await cmd.writeLn(`${shown.name}  ${shown.columns} columns  ${shown.path}`);
+      for (const card of shown.cards) {
+        await cmd.writeLn(`  ${card.id}  ${card.card}  ${card.size.join('x')}${card.problem ? `  (${card.problem})` : ''}`);
+      }
+      for (const problem of shown.problems) await cmd.writeLn(`  ! ${problem}`);
+    }
+    return 0;
+  } catch (error) {
+    return await fail(cmd, 'dashboard-show', error);
+  }
+};
+
+dashboardShow.spec = {
+  name: 'dashboard-show',
+  effect: 'read' as const,
+  description: 'Show one dashboard: its cards, each with the route it is drawn with',
+  args: [{ name: 'dashboard', type: 'string' as const, description: 'its title, or its path under /archive/dashboards' }],
+  flags: [],
+  examples: ['dashboard-show Kitchen'],
+  returns:
+    'The dashboard (as dashboards lists it) with its wall settings, its cards — id, card, size, title, with, label, icon, color, frame, and route, or a problem — and problems read in its file.',
+};
+
+export default dashboardShow;

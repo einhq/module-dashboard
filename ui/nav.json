@@ -1,0 +1,27 @@
+{
+  "sidebar": [
+    {
+      "id": "dashboard.list",
+      "section": "system",
+      "label": "Dashboards",
+      "icon": "layout-dashboard",
+      "to": "/dashboards",
+      "order": 15,
+      "signedIn": true
+    }
+  ],
+  "topbar": [
+    {
+      "id": "dashboard.new",
+      "parent": "ui.create",
+      "title": "Dashboard",
+      "icon": "layout-dashboard",
+      "color": "teal",
+      "action": {
+        "dialog": "/dashboards/new"
+      },
+      "order": 60,
+      "signedIn": true
+    }
+  ]
+}

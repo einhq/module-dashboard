@@ -1,0 +1,73 @@
+#!ts
+/** dashboard-card-add — put a card on a dashboard, at its end or at a place, set to what it shows. */
+import type { CmdReturn, Command } from '@ein/client';
+import { collectUnknownFlags, parseArgs, reportUnknownFlags } from '@ein/client';
+import type { PlacedCard, ShownCard } from '@dashboard/api';
+import { readCatalog } from '@dashboard/catalog';
+import { changedValues, checkSize, parseSize } from '@dashboard/edit';
+import { fitSize } from '@dashboard/layout';
+import { offersById, shownCard } from '@dashboard/show';
+import { DashboardError, dashboardPath, fail, newCardId, readDashboard, writeDashboard } from '@dashboard/store';
+
+const dashboardCardAdd = async (cmd: Command): CmdReturn => {
+  const unknown: string[] = [];
+  const flags = parseArgs(cmd.args, {
+    string: ['size', 'title', 'at'],
+    boolean: ['no-title'],
+    collect: ['with'],
+    unknown: collectUnknownFlags(unknown),
+  });
+  if (await reportUnknownFlags(cmd, unknown)) return 1;
+  try {
+    const [ref, cardId] = flags._.map(String);
+    if (!ref || !cardId) throw new DashboardError('give the dashboard and the card: dashboard-card-add Kitchen dashboard.clock');
+    if (flags.title !== undefined && flags['no-title']) throw new DashboardError('--title and --no-title say opposite things');
+    const offers = offersById((await readCatalog(cmd)).offers);
+    const offer = offers.get(cardId);
+    if (!offer) throw new DashboardError(`no module offers ${cardId}; dashboard-cards lists the cards there are`);
+
+    const path = dashboardPath(ref);
+    const { file } = await readDashboard(cmd, path);
+    const card: PlacedCard = {
+      id: newCardId(file.cards),
+      card: offer.id,
+      size: fitSize(checkSize(offer, flags.size ? parseSize(flags.size) : offer.size), file.columns),
+      ...(flags['no-title'] ? { title: false as const } : flags.title ? { title: flags.title } : {}),
+    };
+    const values = changedValues(offer, {}, (flags.with as string[] | undefined)?.map(String) ?? []);
+    if (Object.keys(values).length > 0) card.with = values;
+
+    const at = flags.at === undefined ? file.cards.length : Number(flags.at);
+    if (!Number.isInteger(at) || at < 0) throw new DashboardError('--at is a place on the dashboard, from 0');
+    file.cards.splice(Math.min(at, file.cards.length), 0, card);
+    await writeDashboard(cmd, path, file);
+
+    const shown = shownCard(card, offers);
+    if (cmd.json) await cmd.writeJSON(shown satisfies ShownCard);
+    else await cmd.writeLn(`${card.id}  ${card.card}  ${card.size.join('x')}`);
+    return 0;
+  } catch (error) {
+    return await fail(cmd, 'dashboard-card-add', error);
+  }
+};
+
+dashboardCardAdd.spec = {
+  name: 'dashboard-card-add',
+  effect: 'write' as const,
+  description: 'Put a card on a dashboard',
+  args: [
+    { name: 'dashboard', type: 'string' as const, description: 'its title, or its path under /archive/dashboards' },
+    { name: 'card', type: 'string' as const, description: 'the card, as <module>.<name>; dashboard-cards lists them' },
+  ],
+  flags: [
+    { name: 'size', type: 'string' as const, description: "<columns>x<rows>, such as 4x3 (default the card's own)" },
+    { name: 'title', type: 'string' as const, description: "its header's title in place of the card's name" },
+    { name: 'no-title', type: 'bool' as const, description: 'no header at all' },
+    { name: 'with', type: 'string' as const, description: 'key=value: what it shows, as the card takes it; again for each', repeatable: true },
+    { name: 'at', type: 'string' as const, description: 'its place among the cards, from 0 (default the end)' },
+  ],
+  examples: ['dashboard-card-add Kitchen dashboard.clock', 'dashboard-card-add Kitchen dashboard.coming-up --size 4x5 --with days=14'],
+  returns: 'The card as dashboard-show shows it: id, card, size, title, with, label, icon, color, frame, and route or a problem.',
+};
+
+export default dashboardCardAdd;

@@ -1,0 +1,40 @@
+#!ts
+/** dashboard-card-remove — take a card off a dashboard. */
+import type { CmdReturn, Command } from '@ein/client';
+import { collectUnknownFlags, parseArgs, reportUnknownFlags } from '@ein/client';
+import { DashboardError, dashboardPath, fail, readDashboard, writeDashboard } from '@dashboard/store';
+
+const dashboardCardRemove = async (cmd: Command): CmdReturn => {
+  const unknown: string[] = [];
+  const flags = parseArgs(cmd.args, { unknown: collectUnknownFlags(unknown) });
+  if (await reportUnknownFlags(cmd, unknown)) return 1;
+  try {
+    const [ref, id] = flags._.map(String);
+    if (!ref || !id) throw new DashboardError("give the dashboard and the card's id: dashboard-card-remove Kitchen k7q2");
+    const path = dashboardPath(ref);
+    const { file } = await readDashboard(cmd, path);
+    const at = file.cards.findIndex((card) => card.id === id);
+    if (at === -1) throw new DashboardError(`${path} has no card ${id}`);
+    file.cards.splice(at, 1);
+    await writeDashboard(cmd, path, file);
+    if (cmd.json) await cmd.writeJSON({ ok: true });
+    return 0;
+  } catch (error) {
+    return await fail(cmd, 'dashboard-card-remove', error);
+  }
+};
+
+dashboardCardRemove.spec = {
+  name: 'dashboard-card-remove',
+  effect: 'write' as const,
+  description: 'Take a card off a dashboard',
+  args: [
+    { name: 'dashboard', type: 'string' as const, description: 'its title, or its path under /archive/dashboards' },
+    { name: 'id', type: 'string' as const, description: "the card's id, as dashboard-show lists it" },
+  ],
+  flags: [],
+  examples: ['dashboard-card-remove Kitchen k7q2'],
+  returns: '{ ok: true }',
+};
+
+export default dashboardCardRemove;

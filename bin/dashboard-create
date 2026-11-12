@@ -1,0 +1,53 @@
+#!ts
+/** dashboard-create — a new, empty dashboard, shared as you share new things unless told otherwise. */
+import type { CmdReturn, Command } from '@ein/client';
+import { collectUnknownFlags, parseArgs, reportUnknownFlags } from '@ein/client';
+import type { DashboardColor, DashboardSummary } from '@dashboard/api';
+import { COLUMN_CHOICES } from '@dashboard/layout';
+import { accountNames } from '@dashboard/show';
+import { COLORS, createDashboard, DashboardError, fail, readDashboard, summarize } from '@dashboard/store';
+
+const SHARES = ['default', 'private', 'shared', 'everyone'];
+
+const dashboardCreate = async (cmd: Command): CmdReturn => {
+  const unknown: string[] = [];
+  const flags = parseArgs(cmd.args, { string: ['color', 'description', 'columns', 'share'], unknown: collectUnknownFlags(unknown) });
+  if (await reportUnknownFlags(cmd, unknown)) return 1;
+  try {
+    const title = flags._.map(String).join(' ');
+    if (flags.color !== undefined && !COLORS.includes(flags.color as DashboardColor)) throw new DashboardError(`--color is one of ${COLORS.join(', ')}`);
+    const columns = flags.columns === undefined ? undefined : Number(flags.columns);
+    if (columns !== undefined && !(COLUMN_CHOICES as readonly number[]).includes(columns)) throw new DashboardError(`--columns is one of ${COLUMN_CHOICES.join(', ')}`);
+    if (flags.share !== undefined && !SHARES.includes(flags.share)) throw new DashboardError(`--share is one of ${SHARES.join(', ')}`);
+    const path = await createDashboard(cmd, title, {
+      color: flags.color as DashboardColor | undefined,
+      description: flags.description || undefined,
+      columns,
+      share: flags.share,
+    });
+    const { node, file } = await readDashboard(cmd, path);
+    const made = summarize(cmd, path, node, file, () => 'gray', (await accountNames(cmd)).get(node.props.uid));
+    if (cmd.json) await cmd.writeJSON(made satisfies DashboardSummary);
+    else await cmd.writeLn(path);
+    return 0;
+  } catch (error) {
+    return await fail(cmd, 'dashboard-create', error);
+  }
+};
+
+dashboardCreate.spec = {
+  name: 'dashboard-create',
+  effect: 'write' as const,
+  description: 'Make a new, empty dashboard',
+  args: [{ name: 'title', type: 'string' as const, description: 'what it is called; its file is <title>.yaml in /archive/dashboards', variadic: true }],
+  flags: [
+    { name: 'color', type: 'string' as const, description: `the colour its page and wall are drawn in: ${COLORS.join(', ')} (default mixed)` },
+    { name: 'description', type: 'string' as const, description: 'a line about it, under its title' },
+    { name: 'columns', type: 'string' as const, description: `cells across: ${COLUMN_CHOICES.join(', ')} (default 12)` },
+    { name: 'share', type: 'string' as const, description: 'default (as you share new things), private, shared or everyone' },
+  ],
+  examples: ['dashboard-create Kitchen', "dashboard-create 'Living room' --color device --share private"],
+  returns: 'The new dashboard, as dashboards lists it.',
+};
+
+export default dashboardCreate;

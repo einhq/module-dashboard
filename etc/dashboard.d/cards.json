@@ -1,0 +1,277 @@
+[
+  {
+    "name": "clock",
+    "label": "Clock",
+    "description": "The time, large, with the day and the date under it.",
+    "icon": "clock",
+    "color": "indigo",
+    "route": "/cards/dashboard/clock",
+    "frame": "plain",
+    "size": [
+      4,
+      3
+    ],
+    "min": [
+      2,
+      2
+    ],
+    "params": {
+      "type": "object",
+      "properties": {
+        "zone": {
+          "type": "string",
+          "format": "timezone",
+          "title": "Time zone",
+          "description": "Another place's time; the screen's own when left out."
+        },
+        "seconds": {
+          "type": "boolean",
+          "title": "Seconds",
+          "default": false
+        },
+        "label": {
+          "type": "string",
+          "title": "Label",
+          "description": "What the clock is of, such as a city, under the date."
+        }
+      }
+    }
+  },
+  {
+    "name": "coming-up",
+    "label": "Coming up",
+    "description": "What falls on the days ahead from every module: birthdays, anniversaries, todos falling due.",
+    "icon": "calendar-event",
+    "color": "grape",
+    "route": "/cards/dashboard/coming-up",
+    "size": [
+      4,
+      5
+    ],
+    "min": [
+      3,
+      3
+    ],
+    "params": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "integer",
+          "title": "Days ahead",
+          "default": 30,
+          "minimum": 1,
+          "maximum": 366
+        },
+        "limit": {
+          "type": "integer",
+          "title": "At most",
+          "default": 12,
+          "minimum": 1,
+          "maximum": 50
+        },
+        "only": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "Only from",
+          "description": "The modules' kinds of event to show, such as anniversaries or todo; all of them when none.",
+          "x-choices": {
+            "command": "events --days-ahead 366 --days-past 0 --limit 200",
+            "value": "source",
+            "label": "source"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "on-this-day",
+    "label": "On this day",
+    "description": "Pictures taken on this day in earlier years, a ring for each year.",
+    "icon": "history",
+    "color": "blue",
+    "route": "/cards/dashboard/on-this-day",
+    "size": [
+      6,
+      3
+    ],
+    "min": [
+      3,
+      2
+    ],
+    "params": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "title": "Years at most",
+          "default": 8,
+          "minimum": 1,
+          "maximum": 20
+        }
+      }
+    }
+  },
+  {
+    "name": "news",
+    "label": "News",
+    "description": "What was added lately: albums made, and whatever else the modules tell of.",
+    "icon": "news",
+    "color": "teal",
+    "route": "/cards/dashboard/news",
+    "size": [
+      4,
+      5
+    ],
+    "min": [
+      3,
+      3
+    ],
+    "params": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "title": "At most",
+          "default": 6,
+          "minimum": 1,
+          "maximum": 20
+        }
+      }
+    }
+  },
+  {
+    "name": "device",
+    "label": "Device",
+    "description": "A device's readings and switches, each as on its page; a switch works for whoever may use it.",
+    "icon": "plug",
+    "color": "orange",
+    "route": "/cards/dashboard/device",
+    "size": [
+      6,
+      3
+    ],
+    "min": [
+      3,
+      2
+    ],
+    "params": {
+      "type": "object",
+      "required": [
+        "device"
+      ],
+      "properties": {
+        "device": {
+          "type": "string",
+          "title": "Device",
+          "x-choices": {
+            "command": "devices",
+            "value": "name",
+            "label": "label"
+          }
+        },
+        "endpoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "Show only",
+          "description": "Its readings and switches to show; all of them when none.",
+          "x-choices": {
+            "command": "device-show {device}",
+            "items": "endpointList",
+            "value": "name",
+            "label": "label"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "reading",
+    "label": "Reading",
+    "description": "One reading, large, with how it went over the last hours.",
+    "icon": "gauge",
+    "color": "orange",
+    "route": "/cards/dashboard/reading",
+    "frame": "plain",
+    "size": [
+      3,
+      3
+    ],
+    "min": [
+      2,
+      2
+    ],
+    "params": {
+      "type": "object",
+      "required": [
+        "device",
+        "endpoint"
+      ],
+      "properties": {
+        "device": {
+          "type": "string",
+          "title": "Device",
+          "x-choices": {
+            "command": "devices",
+            "value": "name",
+            "label": "label"
+          }
+        },
+        "endpoint": {
+          "type": "string",
+          "title": "Reading",
+          "x-choices": {
+            "command": "device-show {device}",
+            "items": "endpointList",
+            "value": "name",
+            "label": "label"
+          }
+        },
+        "label": {
+          "type": "string",
+          "title": "Label",
+          "description": "What to call it in place of its own name."
+        },
+        "hours": {
+          "type": "integer",
+          "title": "Hours of history",
+          "default": 24,
+          "minimum": 1,
+          "maximum": 168
+        }
+      }
+    }
+  },
+  {
+    "name": "note",
+    "label": "Note",
+    "description": "A few words of your own, in Markdown.",
+    "icon": "note",
+    "color": "yellow",
+    "route": "/cards/dashboard/note",
+    "size": [
+      4,
+      3
+    ],
+    "min": [
+      2,
+      1
+    ],
+    "params": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "format": "markdown",
+          "title": "Text"
+        }
+      }
+    }
+  }
+]

@@ -1,0 +1,35 @@
+#!ts
+/** dashboard-cards — the cards the installed modules offer, from their etc/dashboard.d/cards.json. */
+import type { CmdReturn, Command } from '@ein/client';
+import { collectUnknownFlags, parseArgs, reportUnknownFlags } from '@ein/client';
+import type { CardOffer } from '@dashboard/api';
+import { readCatalog } from '@dashboard/catalog';
+import { fail } from '@dashboard/store';
+
+const dashboardCards = async (cmd: Command): CmdReturn => {
+  const unknown: string[] = [];
+  parseArgs(cmd.args, { unknown: collectUnknownFlags(unknown) });
+  if (await reportUnknownFlags(cmd, unknown)) return 1;
+  try {
+    const { offers, problems } = await readCatalog(cmd);
+    // A module's broken list is its own to fix: said, and the rest offered.
+    for (const problem of problems) await cmd.writeError(`dashboard-cards: ${problem}\n`);
+    if (cmd.json) await cmd.writeJSON(offers satisfies CardOffer[]);
+    else for (const offer of offers) await cmd.writeLn(`${offer.id}  ${offer.label}  ${offer.size.join('x')}  ${offer.description}`);
+    return 0;
+  } catch (error) {
+    return await fail(cmd, 'dashboard-cards', error);
+  }
+};
+
+dashboardCards.spec = {
+  name: 'dashboard-cards',
+  effect: 'read' as const,
+  description: 'List the cards the installed modules offer for dashboards',
+  args: [],
+  flags: [],
+  examples: ['dashboard-cards'],
+  returns: 'One entry per card: id (<module>.<name>), module, name, label, description, icon, color, route, frame, size, min, and params, a JSON Schema of what it takes.',
+};
+
+export default dashboardCards;

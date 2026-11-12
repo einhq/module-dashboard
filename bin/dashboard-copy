@@ -1,0 +1,48 @@
+#!ts
+/** dashboard-copy — a new dashboard laid out as another, shared as you share new things. */
+import type { CmdReturn, Command } from '@ein/client';
+import { collectUnknownFlags, parseArgs, reportUnknownFlags } from '@ein/client';
+import type { DashboardSummary } from '@dashboard/api';
+import { readCatalog } from '@dashboard/catalog';
+import { accountNames, offersById } from '@dashboard/show';
+import { createDashboard, DashboardError, dashboardPath, fail, readDashboard, summarize, writeDashboard } from '@dashboard/store';
+
+const dashboardCopy = async (cmd: Command): CmdReturn => {
+  const unknown: string[] = [];
+  const flags = parseArgs(cmd.args, { unknown: collectUnknownFlags(unknown) });
+  if (await reportUnknownFlags(cmd, unknown)) return 1;
+  try {
+    const [ref, ...words] = flags._.map(String);
+    if (!ref || words.length === 0) throw new DashboardError("give the dashboard and the copy's title: dashboard-copy Kitchen 'Kitchen, winter'");
+    const source = await readDashboard(cmd, dashboardPath(ref));
+    const path = await createDashboard(cmd, words.join(' '), {
+      color: source.node.attrs.color,
+      description: source.node.attrs.description,
+      columns: source.file.columns,
+    });
+    await writeDashboard(cmd, path, source.file);
+    const { node, file } = await readDashboard(cmd, path);
+    const offers = offersById((await readCatalog(cmd)).offers);
+    const made = summarize(cmd, path, node, file, (card) => offers.get(card.card)?.color ?? 'gray', (await accountNames(cmd)).get(node.props.uid));
+    if (cmd.json) await cmd.writeJSON(made satisfies DashboardSummary);
+    else await cmd.writeLn(path);
+    return 0;
+  } catch (error) {
+    return await fail(cmd, 'dashboard-copy', error);
+  }
+};
+
+dashboardCopy.spec = {
+  name: 'dashboard-copy',
+  effect: 'write' as const,
+  description: 'Make a new dashboard laid out as another one',
+  args: [
+    { name: 'dashboard', type: 'string' as const, description: 'the one to copy: its title, or its path' },
+    { name: 'title', type: 'string' as const, description: "the copy's title", variadic: true },
+  ],
+  flags: [],
+  examples: ["dashboard-copy Kitchen 'Kitchen, winter'"],
+  returns: 'The new dashboard, as dashboards lists it.',
+};
+
+export default dashboardCopy;

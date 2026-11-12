@@ -1,0 +1,43 @@
+#!ts
+/** dashboards — every dashboard the reader can see, by title, each with its cards laid out for a miniature. */
+import type { CmdReturn, Command } from '@ein/client';
+import { collectUnknownFlags, parseArgs, reportUnknownFlags } from '@ein/client';
+import type { DashboardSummary } from '@dashboard/api';
+import { readCatalog } from '@dashboard/catalog';
+import { accountNames, offersById } from '@dashboard/show';
+import { fail, listDashboards, readDashboard, summarize } from '@dashboard/store';
+
+const dashboards = async (cmd: Command): CmdReturn => {
+  const unknown: string[] = [];
+  parseArgs(cmd.args, { unknown: collectUnknownFlags(unknown) });
+  if (await reportUnknownFlags(cmd, unknown)) return 1;
+  try {
+    const offers = offersById((await readCatalog(cmd)).offers);
+    const names = await accountNames(cmd);
+    const listed: DashboardSummary[] = [];
+    for (const path of await listDashboards(cmd)) {
+      // One the reader may see listed but not read is left out.
+      const read = await readDashboard(cmd, path).catch(() => undefined);
+      if (!read) continue;
+      listed.push(summarize(cmd, path, read.node, read.file, (card) => offers.get(card.card)?.color ?? 'gray', names.get(read.node.props.uid)));
+    }
+    if (cmd.json) await cmd.writeJSON(listed satisfies DashboardSummary[]);
+    else for (const each of listed) await cmd.writeLn(`${each.name}  ${each.tiles.length} card(s)  ${each.path}`);
+    return 0;
+  } catch (error) {
+    return await fail(cmd, 'dashboards', error);
+  }
+};
+
+dashboards.spec = {
+  name: 'dashboards',
+  effect: 'read' as const,
+  description: 'List the dashboards you can see',
+  args: [],
+  flags: [],
+  examples: ['dashboards'],
+  returns:
+    'One entry per dashboard: path, name, color, description, columns, its cards laid out as tiles (x, y, w, h, color), owner, modified, and whether you may change it.',
+};
+
+export default dashboards;
