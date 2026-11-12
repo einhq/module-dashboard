@@ -3,7 +3,7 @@
   "version": "0.1.3",
   "description": "Dashboards: pages of cards the installed modules offer — the time, what is coming up, a picture of the day, a device's readings, a todo list — arranged by whoever makes one, shown full screen on a wall, and on screens that never sign in through a display link",
   "license": "MIT",
-  "coreApi": "^0.14.18",
+  "coreApi": "^0.14.19",
   "exports": {
     "./api": "./lib/api.ts"
   },
