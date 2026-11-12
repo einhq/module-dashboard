@@ -6,7 +6,7 @@
  */
 import { assert, assertEquals, assertStringIncludes } from '@std/assert';
 import { createTestContext, type ShellClient } from '@ein/testing';
-import type { CardOffer, Dashboard, DashboardSummary, ShownCard } from '@dashboard/api';
+import type { CardBrief, CardOffer, Dashboard, DashboardSummary, ShownCard } from '@dashboard/api';
 
 const testCtx = createTestContext({ modules: ['dashboard'], boot: true });
 
@@ -39,6 +39,20 @@ Deno.test({ name: 'dashboards', sanitizeResources: false, sanitizeOps: false }, 
       const weather = offers.find((offer) => offer.id === 'demo.weather')!;
       assertEquals([weather.description, weather.frame, weather.min], ['Weather', 'titled', [1, 1]]);
       assertStringIncludes(await anna.execString('dashboard-cards 2>&1'), 'name is lower case');
+
+      // Named, only those; brief, each without what the form draws, short enough for the assistant to read whole.
+      assertEquals((await anna.execJson<CardOffer[]>('dashboard-cards demo.weather dashboard.clock')).map((offer) => offer.id), ['dashboard.clock', 'demo.weather']);
+      assertStringIncludes((await anna.exec('dashboard-cards demo.nothing')).error ?? '', 'no module offers demo.nothing');
+      const briefs = await anna.execJson<CardBrief[]>('dashboard-cards --brief');
+      assertEquals(briefs.length, offers.length);
+      assertEquals(briefs.find((brief) => brief.id === 'demo.weather'), {
+        id: 'demo.weather',
+        label: 'Weather',
+        description: 'Weather',
+        settings: ['place'],
+        required: ['place'],
+      });
+      assertEquals(briefs.find((brief) => brief.id === 'dashboard.clock')?.settings, ['zone', 'seconds', 'label']);
     });
 
     let kitchen: DashboardSummary;

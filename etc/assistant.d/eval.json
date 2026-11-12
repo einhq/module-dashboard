@@ -1,0 +1,99 @@
+{
+  "note": "Questions for agent-eval, each asked once as the account running it (or --user), with `context` as what the app shows. `commands` are those that do the job: reaching any of them counts, and none means the question is answered without one. `resolvers` turn a name into a path, so calling one first is not a wrong first choice. The questions name a dashboard called Kitchen.",
+  "resolvers": [
+    "dashboards",
+    "dashboard-show",
+    "dashboard-cards",
+    "devices",
+    "device-show"
+  ],
+  "questions": [
+    {
+      "id": "dashboard-which",
+      "bucket": "dashboard",
+      "lang": "en",
+      "ask": "Which dashboards are there?",
+      "commands": [
+        "dashboards"
+      ]
+    },
+    {
+      "id": "dashboard-whats-on-one",
+      "bucket": "dashboard",
+      "lang": "sv",
+      "ask": "Vilka kort finns på köksdashboarden?",
+      "commands": [
+        "dashboard-show"
+      ]
+    },
+    {
+      "id": "dashboard-which-cards",
+      "bucket": "dashboard",
+      "lang": "en",
+      "ask": "What cards can I put on a dashboard?",
+      "commands": [
+        "dashboard-cards"
+      ]
+    },
+    {
+      "id": "dashboard-add-on-screen",
+      "bucket": "write",
+      "lang": "en",
+      "ask": "Add a clock to this dashboard",
+      "context": {
+        "route": "/dashboards/Kitchen",
+        "section": "System",
+        "title": "Kitchen"
+      },
+      "commands": [
+        "dashboard-card-add"
+      ]
+    },
+    {
+      "id": "dashboard-add-reading",
+      "bucket": "write",
+      "lang": "sv",
+      "ask": "Visa processorns temperatur på den här dashboarden",
+      "context": {
+        "route": "/dashboards/Kitchen",
+        "section": "System",
+        "title": "Kitchen"
+      },
+      "commands": [
+        "dashboard-card-add"
+      ]
+    },
+    {
+      "id": "dashboard-create-with-cards",
+      "bucket": "write",
+      "lang": "sv",
+      "ask": "Gör en dashboard som heter Hallen med en klocka och födelsedagarna som kommer",
+      "commands": [
+        "dashboard-create"
+      ]
+    },
+    {
+      "id": "dashboard-remove-card",
+      "bucket": "write",
+      "lang": "en",
+      "ask": "Take the note off this dashboard",
+      "context": {
+        "route": "/dashboards/Kitchen",
+        "section": "System",
+        "title": "Kitchen"
+      },
+      "commands": [
+        "dashboard-card-remove"
+      ]
+    },
+    {
+      "id": "dashboard-dim",
+      "bucket": "write",
+      "lang": "en",
+      "ask": "Dim the kitchen dashboard's wall between 22:30 and 06:30",
+      "commands": [
+        "dashboard-set"
+      ]
+    }
+  ]
+}

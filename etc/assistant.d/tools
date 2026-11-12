@@ -1,0 +1,11 @@
+# The dashboard commands the assistant offers its model as tools, one a line. Each is described by
+# its own --help; one that writes becomes a proposal the user runs.
+dashboards
+dashboard-show
+dashboard-cards
+dashboard-create
+dashboard-card-add
+dashboard-card-set
+dashboard-card-remove
+dashboard-set
+dashboard-copy

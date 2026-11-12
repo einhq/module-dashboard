@@ -114,6 +114,16 @@ export type CardOffer = {
   params: CardParams;
 };
 
+/** A card a module offers, as `dashboard-cards --brief` lists them: what it is and the names of what it takes. */
+export type CardBrief = {
+  id: string;
+  label: string;
+  description: string;
+  /** Its parameters' names, those it cannot go without in `required`. */
+  settings: string[];
+  required?: string[];
+};
+
 /** The part of JSON Schema a card's parameters are written in. */
 export type CardParams = {
   type: 'object';
