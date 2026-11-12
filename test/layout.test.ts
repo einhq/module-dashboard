@@ -4,7 +4,7 @@
  * keeping each card's shape, and a card's values checked, filled in and put in its route.
  */
 import { assertEquals } from '@std/assert';
-import { narrowSize, pack } from '../lib/layout.ts';
+import { narrowSize, pack, resized } from '../lib/layout.ts';
 import { cardRoute, problemsOf, readOffer, valueFrom, withDefaults } from '../lib/params.ts';
 import type { CardParams } from '../lib/api.ts';
 
@@ -20,6 +20,14 @@ Deno.test('on a phone a narrow card takes half the width and a wide one all of i
   assertEquals(narrowSize([3, 2], 12), [1, 1]);
   assertEquals(narrowSize([8, 6], 12), [2, 2]);
   assertEquals(narrowSize([12, 3], 12), [2, 1]);
+});
+
+Deno.test("a card's corner dragged gives it the cells it passes, to the nearest, never under its smallest nor wider than the dashboard", () => {
+  // Cells 100px across and 60px down with their gaps.
+  assertEquals(resized([4, 3], [140, 95], [100, 60], [2, 2], 12), [5, 5]);
+  assertEquals(resized([4, 3], [-40, -20], [100, 60], [2, 2], 12), [4, 3]);
+  assertEquals(resized([4, 3], [-900, -900], [100, 60], [2, 2], 12), [2, 2]);
+  assertEquals(resized([4, 3], [2000, 0], [100, 60], [2, 2], 8), [8, 3]);
 });
 
 const params: CardParams = {

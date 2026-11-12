@@ -105,6 +105,12 @@
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), inset 0 0 0 2px var(--dash-accent);
 }
 
+/* The tile whose corner is held: ringed in its accent, over the others it pushes aside. */
+.dash-tile[data-resizing] {
+  z-index: 3;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), inset 0 0 0 2px var(--dash-accent);
+}
+
 .dash-tile-tools {
   position: absolute;
   z-index: 2;
@@ -125,6 +131,54 @@
 
 .dash-grip:active {
   cursor: grabbing;
+}
+
+/* A tile's corner while editing: a bracket in its accent, dragged to give it more or fewer cells. */
+.dash-corner {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 0;
+  width: 30px;
+  height: 30px;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.dash-corner::after {
+  content: '';
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 12px;
+  height: 12px;
+  border-right: 2.5px solid color-mix(in srgb, var(--dash-accent) 60%, white);
+  border-bottom: 2.5px solid color-mix(in srgb, var(--dash-accent) 60%, white);
+  border-bottom-right-radius: 7px;
+  opacity: 0.6;
+  transition: opacity var(--mrx-dur-fast) var(--mrx-ease), transform var(--mrx-dur-fast) var(--mrx-ease);
+}
+
+.dash-corner:hover::after,
+.dash-tile[data-resizing] .dash-corner::after {
+  opacity: 1;
+  transform: translate(2px, 2px);
+}
+
+/* The size a held corner gives its card, in cells, beside the corner. */
+.dash-size {
+  position: absolute;
+  z-index: 2;
+  right: 34px;
+  bottom: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  color: var(--mrx-text-primary);
+  background: var(--mrx-scrim);
+  backdrop-filter: blur(6px);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .dash-add {

@@ -27,7 +27,7 @@ const SIZES: { label: string; size: CardSize }[] = [
 
 /**
  * `/dashboards/<title>`: a dashboard as a page — its band in its colour over the hat field, then its
- * cards — with Edit to arrange them (drag a grip, pick a size, open a card's settings, take it off,
+ * cards — with Edit to arrange them (drag a grip, drag a corner or pick a size, open a card's settings, take it off,
  * add another), Full screen for its wall, Share, and the rest under ⋮. It follows its file, so an
  * edit made elsewhere shows here at once. A visitor holding a link to it is shown the wall.
  */
@@ -187,6 +187,7 @@ export default function DashboardPage() {
               editing={editing}
               tools={tools}
               onMove={(id, to) => void run(`dashboard-card-set ${shq(path)} ${shq(id)} --to ${to}`)}
+              onResize={(id, size) => void run(`dashboard-card-set ${shq(path)} ${shq(id)} --size ${size.join('x')}`)}
               onAdd={addCard}
             />
           )}

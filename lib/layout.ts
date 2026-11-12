@@ -61,3 +61,13 @@ export const narrowSize = ([w, h]: CardSize, columns: number): CardSize => {
   const across = w * 4 <= columns ? 1 : NARROW_COLUMNS;
   return [across, Math.max(1, Math.round((h * across) / w))];
 };
+
+/**
+ * A card's size as its corner is dragged: `start` grown by the cells `moved` covers, a cell being
+ * `pitch` across and down (a cell and its gap), rounded to the nearest; never under `min`, nor
+ * wider than the dashboard, nor taller than `--size` takes (two digits).
+ */
+export const resized = (start: CardSize, moved: [number, number], pitch: [number, number], min: CardSize, columns: number): CardSize => [
+  Math.min(Math.max(min[0], 1, start[0] + Math.round(moved[0] / pitch[0])), columns),
+  Math.min(Math.max(min[1], 1, start[1] + Math.round(moved[1] / pitch[1])), 99),
+];

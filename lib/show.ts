@@ -27,6 +27,7 @@ export const shownCard = (card: PlacedCard, offers: Map<string, CardOffer>): Sho
     icon: offer.icon,
     color: offer.color,
     frame: offer.frame,
+    min: offer.min,
     ...(problems.length > 0 ? { problem: problems.join('; ') } : { route: cardRoute(offer.route, withDefaults(offer.params, values)) }),
   };
 };

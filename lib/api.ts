@@ -75,6 +75,8 @@ export type ShownCard = PlacedCard & {
   color: string;
   /** `titled` draws a header above the route; `plain` gives the route the whole tile. */
   frame: 'titled' | 'plain';
+  /** The smallest it may be, as its offer says; absent when no module offers it. */
+  min?: CardSize;
   /** The route with its query, every value the card takes filled in; absent when it cannot be drawn. */
   route?: string;
   /** Why it cannot be drawn as it is: its module is gone, or a value it needs is missing. */

@@ -29,16 +29,18 @@ function Loading() {
  * One card on a dashboard: a tile in its accent — a faint glow from its corner and a ring of it —
  * with a header of its icon in a glassy tile and its title, unless it draws the whole tile itself
  * (`plain`) or was given no title; then the route that draws it, or why it cannot be drawn.
- * `tools` stand over it while the dashboard is edited.
+ * `tools` stand over it while the dashboard is edited, and `corner` in its bottom right.
  */
-export function CardTile({ card, order, place, lifted, tools }: {
+export function CardTile({ card, order, place, lifted, resizing, tools, corner }: {
   card: ShownCard;
   /** Its place in the order it rises in as the page arrives. */
   order: number;
   /** Its cells in the grid, as CSS grid lines. */
   place: CSSProperties;
   lifted?: boolean;
+  resizing?: boolean;
   tools?: ReactNode;
+  corner?: ReactNode;
 }) {
   const header = card.frame === 'titled' && card.title !== false;
   return (
@@ -47,6 +49,7 @@ export function CardTile({ card, order, place, lifted, tools }: {
       data-card-id={card.id}
       data-frame={card.frame}
       data-lifted={lifted || undefined}
+      data-resizing={resizing || undefined}
       style={{ ...place, '--dash-accent': accentOf(card.color), '--dash-order': order } as CSSProperties}
     >
       {tools}
@@ -63,6 +66,7 @@ export function CardTile({ card, order, place, lifted, tools }: {
           ? <RoutePanel path={card.route} loading={<Loading />} failed={<Quiet icon='plug-connected-x'>{card.label} could not be drawn here</Quiet>} />
           : <Quiet icon={card.problem?.startsWith('no module') ? 'puzzle-off' : 'adjustments'}>{card.problem}</Quiet>}
       </div>
+      {corner}
     </div>
   );
 }
