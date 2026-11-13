@@ -27,6 +27,7 @@ const paramProblem = (key: string, param: unknown): string | undefined => {
     if (!isRecord(choices) || typeof choices.command !== 'string' || typeof choices.value !== 'string' || typeof choices.label !== 'string') {
       return `${key}: x-choices takes a command, and the value and label fields of its answer`;
     }
+    if (choices.where !== undefined && !isRecord(choices.where)) return `${key}: x-choices' where is the fields an item must have, with their values`;
   }
   return undefined;
 };

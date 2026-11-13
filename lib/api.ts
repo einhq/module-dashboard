@@ -148,8 +148,9 @@ export type CardParam = {
   items?: { type: 'string' | 'number' };
   /**
    * The choices a read command lists: `items` the key path to the list in its answer when the
-   * answer is not one, `value` and `label` each choice's fields, `{param}` in `command` another
-   * parameter's value. The form runs it as the person editing.
+   * answer is not one, `value` and `label` each choice's fields, `where` the fields an item must
+   * have one of the given values in to be listed (`{ "type": "control" }`), `{param}` in `command`
+   * another parameter's value. The form runs it as the person editing.
    */
-  'x-choices'?: { command: string; items?: string; value: string; label: string };
+  'x-choices'?: { command: string; items?: string; value: string; label: string; where?: Record<string, CardValue> };
 };

@@ -66,4 +66,15 @@ Deno.test('an offer takes defaults for what it leaves out, and one that cannot b
     readOffer('demo', { name: 'clock', label: 'Clock', route: '/c', size: [2, 2], params: { type: 'object', properties: { a: { type: 'date' } } } }),
     'demo.clock: a: type is not one of string, number, integer, boolean, array',
   );
+  const choices = (where: unknown) => ({ command: 'device-show {device}', items: 'endpointList', where, value: 'name', label: 'label' });
+  const offerWith = (where: unknown) =>
+    readOffer('demo', {
+      name: 'press',
+      label: 'Press',
+      route: '/c',
+      size: [1, 1],
+      params: { type: 'object', properties: { endpoint: { type: 'string', 'x-choices': choices(where) } } },
+    });
+  assertEquals(typeof offerWith({ type: 'control' }), 'object');
+  assertEquals(offerWith('control'), "demo.press: endpoint: x-choices' where is the fields an item must have, with their values");
 });

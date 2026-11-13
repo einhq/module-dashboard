@@ -11,10 +11,14 @@ type Choice = { value: string; label: string };
 const at = (value: unknown, path: string | undefined): unknown =>
   !path ? value : path.split('.').reduce<unknown>((into, key) => (into && typeof into === 'object' ? (into as Record<string, unknown>)[key] : undefined), value);
 
+/** Whether an item of a choices command's answer has, in each field `where` names, one of its values. */
+const matches = (item: unknown, where: Record<string, CardValue> | undefined): boolean =>
+  Object.entries(where ?? {}).every(([path, wanted]) => ([] as unknown[]).concat(wanted).includes(at(item, path)));
+
 /**
  * The choices a parameter's `x-choices` command lists, read as the person editing, with `{param}`
- * filled in from the form's other values; none while one it needs is unset. A choice the answer
- * repeats is listed once.
+ * filled in from the form's other values; none while one it needs is unset. Only the items its
+ * `where` matches are listed, and a choice the answer repeats only once.
  */
 function useChoices(param: CardParam, values: Record<string, CardValue>): { choices: Choice[]; loading: boolean } {
   const spec = param['x-choices'];
@@ -42,6 +46,7 @@ function useChoices(param: CardParam, values: Record<string, CardValue>): { choi
         const seen = new Set<string>();
         const read: Choice[] = [];
         for (const item of Array.isArray(list) ? list : []) {
+          if (!matches(item, spec.where)) continue;
           const value = at(item, spec.value);
           if (value === undefined || value === null || seen.has(String(value))) continue;
           seen.add(String(value));
