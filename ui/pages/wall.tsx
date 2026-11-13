@@ -5,11 +5,11 @@ import { useCommand, useElementWidth, useNodeEvents, useSurface, useWakeLock } f
 import { shq } from '@ein/ui/lib';
 import { isAuthenticated } from '@ein/ui/signals';
 import { type CSSProperties, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import type { Dashboard, WallSettings } from '../../lib/api.ts';
 import { DashboardGrid } from '../components/DashboardGrid.tsx';
 import { Quiet } from '../components/CardTile.tsx';
-import { dashboardFile, dashboardRoute } from '../look.ts';
+import { dashboardFile, dashboardRoute, wallRoute } from '../look.ts';
 import '../dashboard.css';
 
 /** How long the pointer rests before the cursor and the controls go. */
@@ -85,15 +85,25 @@ const randomDrift = (): [number, number] => [Math.round((Math.random() * 2 - 1) 
 
 /**
  * `/dashboard-wall/<title>`, drawn by the full-screen surface: a dashboard for a screen on a wall.
- * Its cards fill the screen as glass tiles over the hat field in its colour, which glints now and
- * then; the screen is held awake where the browser lets it, the cursor and the controls go when
- * the pointer rests, the cards drift a few pixels now and then, the wall dims between the times
- * its dashboard says, and it loads itself again each night. A visitor holding a link only looks:
- * the cards lead nowhere and there is no way out of it.
+ * Its address loaded as a page — typed, bookmarked, reloaded — opens it full screen over its
+ * dashboard's page, as Full screen there does, rather than inside the sidebar and the top bar.
  */
 export default function WallPage() {
-  useSignals();
   const { name = '' } = useParams();
+  if (useSurface().kind !== 'page') return <Wall name={name} />;
+  const search = new URLSearchParams({ fullscreen: wallRoute(name) });
+  return <Navigate replace to={`${dashboardRoute(name)}?${search}`} />;
+}
+
+/**
+ * A dashboard's wall. Its cards fill the screen as glass tiles over the hat field in its colour,
+ * which glints now and then; the screen is held awake where the browser lets it, the cursor and
+ * the controls go when the pointer rests, the cards drift a few pixels now and then, the wall dims
+ * between the times its dashboard says, and it loads itself again each night. A visitor holding a
+ * link only looks: the cards lead nowhere and there is no way out of it.
+ */
+function Wall({ name }: { name: string }) {
+  useSignals();
   const path = dashboardFile(name);
   const surface = useSurface();
   const shown = useCommand<Dashboard>(`dashboard-show ${shq(path)}`);
