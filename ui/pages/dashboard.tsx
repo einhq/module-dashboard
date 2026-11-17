@@ -1,7 +1,7 @@
 import { ActionIcon, Box, Button, Menu, Text, Tooltip } from '@mantine/core';
 import { useSignals } from '@preact/signals-react/runtime';
 import { EmptyState, EntityDetailHeader, type HatPattern, PageLoader, TablerIcon } from '@ein/ui/components';
-import { useCommand, useElementWidth, useNodeEvents, usePhone, useUrlParam } from '@ein/ui/hooks';
+import { useCommand, useElementWidth, useNodeEvents, usePhone, useShowOn, useUrlParam } from '@ein/ui/hooks';
 import { shq } from '@ein/ui/lib';
 import { execCommand, fullscreenPath, heldLinks, isAuthenticated, notify, onOutsideEdit, openDialog, openFullscreen } from '@ein/ui/signals';
 import { useEffect } from 'react';
@@ -40,6 +40,7 @@ export default function DashboardPage() {
   useEffect(() => onOutsideEdit(() => void shown.refetch()), [shown.refetch]);
   const [edit, setEdit] = useUrlParam('edit');
   const phone = usePhone();
+  const showOn = useShowOn();
   const [measure, width] = useElementWidth<HTMLDivElement>();
 
   // Someone who opened a link to it has nothing to do here but look: the wall it is made for.
@@ -162,7 +163,12 @@ export default function DashboardPage() {
         flowContent
         actions={{
           ...(dashboard.canEdit ? { share: path, trash: { path, name: dashboard.name, leaveTo: '/dashboards' } } : {}),
-          items: [{ label: 'Full screen', icon: 'arrows-maximize', button: true, onClick: wall }, ...editItems],
+          items: [
+            { label: 'Full screen', icon: 'arrows-maximize', button: true, onClick: wall },
+            // Its wall on a screen, drawn there as whoever gave it.
+            ...(showOn ? [{ label: 'Show on…', icon: 'cast', onClick: () => showOn({ path: wallRoute(name), title: dashboard.name }) }] : []),
+            ...editItems,
+          ],
         }}
       />
       <Box ref={measure} px='md' py='lg'>
