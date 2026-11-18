@@ -163,10 +163,11 @@ export default function DashboardPage() {
         flowContent
         actions={{
           ...(dashboard.canEdit ? { share: path, trash: { path, name: dashboard.name, leaveTo: '/dashboards' } } : {}),
+          // Its wall on a screen, drawn there as whoever gave it.
+          nearby: { path: wallRoute(name), title: dashboard.name, kind: 'Dashboard' },
           items: [
             { label: 'Full screen', icon: 'arrows-maximize', button: true, onClick: wall },
-            // Its wall on a screen, drawn there as whoever gave it.
-            ...(showOn ? [{ label: 'Show on…', icon: 'cast', onClick: () => showOn({ path: wallRoute(name), title: dashboard.name }) }] : []),
+            ...(showOn ? [{ label: 'Show on…', icon: 'device-tv', onClick: () => showOn({ path: wallRoute(name), title: dashboard.name }) }] : []),
             ...editItems,
           ],
         }}
