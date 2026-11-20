@@ -7,6 +7,9 @@ import type { CardParam, CardParams, CardValue } from '../../lib/api.ts';
 
 type Choice = { value: string; label: string };
 
+/** How many choices a list shows at once: a command may list thousands, which typing narrows. */
+const SHOWN = 100;
+
 /** The field a key path names in an answer: `endpointList`, `a.b`. */
 const at = (value: unknown, path: string | undefined): unknown =>
   !path ? value : path.split('.').reduce<unknown>((into, key) => (into && typeof into === 'object' ? (into as Record<string, unknown>)[key] : undefined), value);
@@ -103,6 +106,7 @@ function ParamField({ name, param, required, values, onChange }: {
           data={choices}
           value={list}
           onChange={(next) => onChange(next.length ? next : undefined)}
+          limit={SHOWN}
           searchable
           clearable
           placeholder={loading ? 'Reading…' : undefined}
@@ -131,6 +135,7 @@ function ParamField({ name, param, required, values, onChange }: {
         data={choices}
         value={text || null}
         onChange={(next) => onChange(next ?? undefined)}
+        limit={SHOWN}
         searchable
         clearable={!required}
         placeholder={loading ? 'Reading…' : choices.length === 0 && param['x-choices'] ? 'Nothing to choose from yet' : undefined}

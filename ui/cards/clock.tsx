@@ -1,4 +1,5 @@
 import { Stack } from '@mantine/core';
+import { dateTimeFormat } from '@ein/ui/lib';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import '../dashboard.css';
@@ -21,12 +22,12 @@ export default function ClockCard() {
   let time: string;
   let date: string;
   try {
-    time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', ...(seconds ? { second: '2-digit' } : {}), timeZone: zone }).format(now);
-    date = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', timeZone: zone }).format(now);
+    time = dateTimeFormat({ hour: '2-digit', minute: '2-digit', ...(seconds ? { second: '2-digit' } : {}), timeZone: zone }).format(now);
+    date = dateTimeFormat({ weekday: 'long', day: 'numeric', month: 'long', timeZone: zone }).format(now);
   } catch {
     // A zone the browser does not know: the screen's own.
-    time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(now);
-    date = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long' }).format(now);
+    time = dateTimeFormat({ hour: '2-digit', minute: '2-digit', ...(seconds ? { second: '2-digit' } : {}) }).format(now);
+    date = dateTimeFormat({ weekday: 'long', day: 'numeric', month: 'long' }).format(now);
   }
 
   return (
