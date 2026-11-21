@@ -76,14 +76,81 @@
   padding: 0;
 }
 
-/* What a tile says when its card cannot be drawn: quiet, in the middle. */
+/* The hats look: each card a piece of the hat tiling, cut along its hats and meeting the next
+ * without a gap. The pieces at the grid's edge run on past it, and the grid cuts them straight. */
+.dash-grid[data-look='hats'] {
+  display: block;
+  overflow: hidden;
+}
+
+.dash-piece {
+  position: absolute;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.dash-piece-art {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* Its hats, faint, the mirrored ones a shade fuller, as in the hat field. */
+.dash-piece-tiles {
+  fill: none;
+  stroke: var(--dash-accent);
+  stroke-opacity: 0.06;
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.dash-piece-mirrored {
+  fill: var(--dash-accent);
+  fill-opacity: 0.02;
+}
+
+/* Its edge in its accent, clipped to the piece: of two that meet each shows half, so the line
+ * between them is one px of both. */
+.dash-piece-edge {
+  fill: none;
+  stroke: color-mix(in srgb, var(--dash-accent) 62%, transparent);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.dash-piece-content {
+  position: absolute;
+  container-type: size;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* The piece's padding is its content's: its header and body add none, on the wall too. */
+.dash-piece .dash-piece-content .dash-tile-head {
+  padding: 0;
+}
+
+.dash-piece .dash-piece-content .dash-tile-body {
+  padding: 10px 0 0;
+}
+
+/* A plain route has the whole piece, and keeps its words in from the edge (`--dash-inset-*`). */
+.dash-piece > .dash-tile-body {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+}
+
+/* What a tile says when its card cannot be drawn: quiet, in the middle, of a piece where its words keep. */
 .dash-tile-quiet {
   display: grid;
   height: 100%;
   place-content: center;
   justify-items: center;
   gap: 6px;
-  padding: 12px;
+  padding: var(--dash-inset-top, 12px) var(--dash-inset-right, 12px) var(--dash-inset-bottom, 12px) var(--dash-inset-left, 12px);
   color: var(--mrx-text-tertiary);
   text-align: center;
 }
@@ -221,6 +288,26 @@
 .dash-wall[data-effects='light'] .dash-tile {
   background: var(--mrx-surface-raised);
   backdrop-filter: none;
+}
+
+/* A browser blurs a clipped element's whole box behind it, so the pieces' glass is the field itself
+ * blurred, reaching past the screen so its edges blur as its middle does. */
+.dash-wall .dash-piece {
+  backdrop-filter: none;
+}
+
+.dash-wall-field {
+  position: absolute;
+  inset: 0;
+}
+
+.dash-wall[data-look='hats'] .dash-wall-field {
+  inset: -32px;
+  filter: blur(16px) saturate(1.15);
+}
+
+.dash-wall[data-look='hats'][data-effects='light'] .dash-wall-field {
+  filter: none;
 }
 
 .dash-wall .dash-tile-head {

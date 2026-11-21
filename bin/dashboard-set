@@ -1,19 +1,19 @@
 #!ts
-/** dashboard-set — change a dashboard's title, colour, description, columns or wall. */
+/** dashboard-set — change a dashboard's title, colour, description, columns, look or wall. */
 import type { CmdReturn, Command } from '@ein/client';
 import { collectUnknownFlags, parseArgs, reportUnknownFlags, shq } from '@ein/client';
-import type { Dashboard, DashboardColor } from '@dashboard/api';
+import type { Dashboard, DashboardColor, DashboardLook } from '@dashboard/api';
 import { readCatalog } from '@dashboard/catalog';
 import { COLUMN_CHOICES, fitSize } from '@dashboard/layout';
 import { accountNames, offersById, showDashboard } from '@dashboard/show';
-import { checkTitle, COLORS, DashboardError, dashboardPath, DASHBOARDS_ROOT, fail, readDashboard, titleOf, writeDashboard } from '@dashboard/store';
+import { checkTitle, COLORS, DashboardError, dashboardPath, DASHBOARDS_ROOT, fail, LOOKS, readDashboard, titleOf, writeDashboard } from '@dashboard/store';
 
 const DIM = /^(\d{2}:\d{2})-(\d{2}:\d{2})(?:@(0?\.\d+|1(?:\.0+)?))?$/;
 
 const dashboardSet = async (cmd: Command): CmdReturn => {
   const unknown: string[] = [];
   const flags = parseArgs(cmd.args, {
-    string: ['title', 'color', 'description', 'columns', 'effects', 'dim'],
+    string: ['title', 'color', 'description', 'columns', 'look', 'effects', 'dim'],
     boolean: ['no-dim'],
     unknown: collectUnknownFlags(unknown),
   });
@@ -37,6 +37,11 @@ const dashboardSet = async (cmd: Command): CmdReturn => {
       if (!(COLUMN_CHOICES as readonly number[]).includes(columns)) throw new DashboardError(`--columns is one of ${COLUMN_CHOICES.join(', ')}`);
       file.columns = columns;
       file.cards = file.cards.map((card) => ({ ...card, size: fitSize(card.size, columns) }));
+      layoutChanged = true;
+    }
+    if (flags.look !== undefined) {
+      if (!LOOKS.includes(flags.look as DashboardLook)) throw new DashboardError(`--look is ${LOOKS.join(' or ')}`);
+      file.look = flags.look as DashboardLook;
       layoutChanged = true;
     }
     if (flags.effects !== undefined) {
@@ -80,18 +85,19 @@ const dashboardSet = async (cmd: Command): CmdReturn => {
 dashboardSet.spec = {
   name: 'dashboard-set',
   effect: 'write' as const,
-  description: "Change a dashboard's title, colour, description, columns or wall",
+  description: "Change a dashboard's title, colour, description, columns, look or wall",
   args: [{ name: 'dashboard', type: 'string' as const, description: 'its title, or its path under /archive/dashboards' }],
   flags: [
     { name: 'title', type: 'string' as const, description: 'a new title, which renames its file' },
     { name: 'color', type: 'string' as const, description: `its colour: ${COLORS.join(', ')}` },
     { name: 'description', type: 'string' as const, description: 'a line about it; empty takes it away' },
     { name: 'columns', type: 'string' as const, description: `cells across: ${COLUMN_CHOICES.join(', ')}` },
+    { name: 'look', type: 'string' as const, description: 'cards, each apart with rounded corners, or hats: pieces of the hat tiling, edge to edge' },
     { name: 'effects', type: 'string' as const, description: 'full, or light: no blur behind the tiles on its wall, for a slow screen' },
     { name: 'dim', type: 'string' as const, description: 'dim its wall between two times, to a level: 22:30-06:30@0.3' },
     { name: 'no-dim', type: 'bool' as const, description: 'never dim its wall' },
   ],
-  examples: ['dashboard-set Kitchen --color device', "dashboard-set Kitchen --title 'Kitchen wall' --dim 22:30-06:30@0.3"],
+  examples: ['dashboard-set Kitchen --color device', 'dashboard-set Kitchen --look hats', "dashboard-set Kitchen --title 'Kitchen wall' --dim 22:30-06:30@0.3"],
   returns: 'The dashboard, as dashboard-show answers.',
 };
 

@@ -31,7 +31,12 @@ export default function ClockCard() {
   }
 
   return (
-    <Stack h='100%' justify='center' gap='0.4em' px='1.1em' py='0.8em'>
+    <Stack
+      h='100%'
+      justify='center'
+      gap='0.4em'
+      style={{ padding: 'var(--dash-inset-top, 0.8em) var(--dash-inset-right, 1.1em) var(--dash-inset-bottom, 0.8em) var(--dash-inset-left, 1.1em)' }}
+    >
       <div className='dash-figure'>{time}</div>
       <div className='dash-line' style={{ textTransform: 'capitalize' }}>{date}</div>
       {label && <div className='dash-line' style={{ color: 'color-mix(in srgb, var(--dash-accent) 70%, white)' }}>{label}</div>}

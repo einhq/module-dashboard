@@ -97,7 +97,8 @@ export default function WallPage() {
 
 /**
  * A dashboard's wall. Its cards fill the screen as glass tiles over the hat field in its colour,
- * which glints now and then; the screen is held awake where the browser lets it, the cursor and
+ * which glints now and then, or in the `hats` look as pieces of the tiling from edge to edge, glass
+ * over that field blurred; the screen is held awake where the browser lets it, the cursor and
  * the controls go when the pointer rests, the cards drift a few pixels now and then, the wall dims
  * between the times its dashboard says, and it loads itself again each night. A visitor holding a
  * link only looks: the cards lead nowhere and there is no way out of it.
@@ -119,6 +120,7 @@ function Wall({ name }: { name: string }) {
   const level = dashboard ? brightness(dashboard.wall) : 1;
   const signedIn = isAuthenticated.value;
   const narrow = width > 0 && width < NARROW_PX;
+  const hats = dashboard?.look === 'hats';
 
   const fill = () => {
     if (document.fullscreenElement) void document.exitFullscreen();
@@ -130,12 +132,13 @@ function Wall({ name }: { name: string }) {
       ref={measure}
       className='mrx-pattern dash-wall'
       data-pattern={dashboard?.color ?? 'mixed'}
+      data-look={dashboard?.look ?? 'cards'}
       data-effects={dashboard?.wall.effects ?? 'full'}
       data-display={!signedIn || undefined}
       data-idle={idle || undefined}
       style={{ filter: level < 1 ? `brightness(${level})` : undefined, overflowY: narrow ? 'auto' : undefined } as CSSProperties}
     >
-      <div style={{ position: 'absolute', inset: 0 }}>
+      <div className='dash-wall-field'>
         <HatField pattern={(dashboard?.color ?? 'mixed') as HatPattern} kind='backdrop' />
       </div>
       {!dashboard
@@ -146,8 +149,9 @@ function Wall({ name }: { name: string }) {
           <div
             style={{
               position: narrow ? 'relative' : 'absolute',
-              inset: narrow ? undefined : 'clamp(14px, 2vmin, 36px)',
-              padding: narrow ? 14 : undefined,
+              // Pieces reach past the screen by as far as the cards drift, so no edge ever shows.
+              inset: narrow ? undefined : hats ? -DRIFT_PX : 'clamp(14px, 2vmin, 36px)',
+              padding: narrow && !hats ? 14 : undefined,
               transform: `translate(${drift[0]}px, ${drift[1]}px)`,
               transition: 'transform 3s ease',
             }}
@@ -157,8 +161,10 @@ function Wall({ name }: { name: string }) {
               columns={dashboard.columns}
               narrow={narrow}
               fit={!narrow}
-              width={width - 28}
+              width={hats ? width + (narrow ? 0 : 2 * DRIFT_PX) : width - 28}
               gap={narrow ? 10 : Math.round(Math.max(10, width / 120))}
+              look={dashboard.look}
+              seed={dashboard.path}
             />
           </div>
         )}

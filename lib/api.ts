@@ -20,6 +20,13 @@ export type DashboardColor =
   | 'staging'
   | 'system';
 
+/**
+ * How a dashboard's cards are drawn: `cards` each apart, with rounded corners; `hats` as pieces of
+ * the hat tiling, cut along its hats edge to edge, so two that meet share one jagged line and those
+ * at the edge run on to it.
+ */
+export type DashboardLook = 'cards' | 'hats';
+
 /** A card's size in cells: columns across, rows down. */
 export type CardSize = [number, number];
 
@@ -58,6 +65,7 @@ export type DashboardSummary = {
   description?: string;
   /** Cells across at full width. */
   columns: number;
+  look: DashboardLook;
   /** Its cards' places and colours, packed as the page lays them out: the list's miniature. */
   tiles: (Placement & { color: string })[];
   owner: { uid: number; name?: string };
@@ -73,7 +81,11 @@ export type ShownCard = PlacedCard & {
   icon: string;
   /** A Mantine colour: its tile's accent. */
   color: string;
-  /** `titled` draws a header above the route; `plain` gives the route the whole tile. */
+  /**
+   * `titled` draws a header above the route; `plain` gives the route the whole tile, and in the
+   * `hats` look the whole piece, saying in `--dash-inset-top`, `-right`, `-bottom` and `-left` how
+   * far in its words keep clear of the piece's edge.
+   */
   frame: 'titled' | 'plain';
   /** The smallest it may be, as its offer says; absent when no module offers it. */
   min?: CardSize;

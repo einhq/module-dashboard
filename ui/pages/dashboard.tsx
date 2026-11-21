@@ -27,7 +27,8 @@ const SIZES: { label: string; size: CardSize }[] = [
 
 /**
  * `/dashboards/<title>`: a dashboard as a page — its band in its colour over the hat field, then its
- * cards — with Edit to arrange them (drag a grip, drag a corner or pick a size, open a card's settings, take it off,
+ * cards, in the `hats` look pieces of the tiling to the page's edges — with Edit to arrange them, as
+ * cards apart whatever the look (drag a grip, drag a corner or pick a size, open a card's settings, take it off,
  * add another), Full screen for its wall, Share, and the rest under ⋮. It follows its file, so an
  * edit made elsewhere shows here at once. A visitor holding a link to it is shown the wall.
  */
@@ -56,6 +57,8 @@ export default function DashboardPage() {
     return <PageLoader />;
   }
   const editing = edit === '1' && dashboard.canEdit;
+  // Pieces run to the page's edges; arranging draws cards apart, the look the corners and grips need.
+  const pieces = dashboard.look === 'hats' && !editing;
 
   const run = async (line: string) => {
     try {
@@ -172,7 +175,7 @@ export default function DashboardPage() {
           ],
         }}
       />
-      <Box ref={measure} px='md' py='lg'>
+      <Box ref={measure} px={pieces ? 0 : 'md'} py={pieces ? 0 : 'lg'}>
         {dashboard.problems.length > 0 && editing && <Text size='sm' c='yellow' mb='md'>Its file says what could not be read: {dashboard.problems.join('; ')}.</Text>}
         {dashboard.cards.length === 0 && !editing
           ? (
@@ -189,8 +192,10 @@ export default function DashboardPage() {
               cards={dashboard.cards}
               columns={dashboard.columns}
               narrow={phone}
-              width={width - 32}
+              width={pieces ? width : width - 32}
               gap={phone ? 10 : 14}
+              look={dashboard.look}
+              seed={dashboard.path}
               editing={editing}
               tools={tools}
               onMove={(id, to) => void run(`dashboard-card-set ${shq(path)} ${shq(id)} --to ${to}`)}

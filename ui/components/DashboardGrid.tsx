@@ -1,7 +1,8 @@
 import { Stack, Text, Tooltip } from '@mantine/core';
 import { TablerIcon } from '@ein/ui/components';
+import { layoutHatPieces } from '@ein/ui/lib';
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import type { CardSize, ShownCard } from '../../lib/api.ts';
+import type { CardSize, DashboardLook, ShownCard } from '../../lib/api.ts';
 import { NARROW_COLUMNS, narrowSize, pack, resized } from '../../lib/layout.ts';
 import { CardTile } from './CardTile.tsx';
 
@@ -23,6 +24,10 @@ type Props = {
   fit?: boolean;
   width: number;
   gap: number;
+  /** How its cards are drawn; while editing, as `cards` whatever it is. */
+  look?: DashboardLook;
+  /** Where on the hat tiling its pieces are cut: one dashboard always has the same cut. */
+  seed?: string;
   editing?: boolean;
   /** Tools over a card while editing. */
   tools?: (card: ShownCard, at: number) => ReactNode;
@@ -48,12 +53,18 @@ type Hold =
  * others, which make room as it passes, and its corner drags it a cell at a time to another size,
  * the others laid out around it as it grows; letting go puts it there. A phone, whose two columns
  * the sizes are made into, has no corner.
+ *
+ * In the `hats` look the cells meet without a gap and each card is the piece of the hat tiling over
+ * its cells (`layoutHatPieces`), the pieces at the grid's edge running on past it to be cut
+ * straight there, so the grid is covered edge to edge.
  */
-export function DashboardGrid({ cards, columns, narrow, fit, width, gap, editing, tools, onMove, onResize, onAdd }: Props) {
+export function DashboardGrid({ cards, columns, narrow, fit, width, gap, look = 'cards', seed, editing, tools, onMove, onResize, onAdd }: Props) {
   const [hold, setHold] = useState<Hold | null>(null);
   const holdRef = useRef<Hold | null>(null);
   holdRef.current = hold;
   const gridRef = useRef<HTMLDivElement>(null);
+  const hats = look === 'hats' && !editing;
+  const fitHeight = useBoxHeight(gridRef, hats && !!fit);
 
   useEffect(() => setHold((held) => held?.done ? null : held), [cards]);
 
@@ -69,6 +80,17 @@ export function DashboardGrid({ cards, columns, narrow, fit, width, gap, editing
   const adding = editing && onAdd;
   const { placements, rows } = pack(adding ? [...sizes, narrow ? narrowSize(ADD_SIZE, columns) : ADD_SIZE] : sizes, across);
   const row = fit ? '1fr' : `${Math.max(36, Math.round(((width - gap * (across - 1)) / across) * ROW_RATIO))}px`;
+
+  // The pieces, cut again only when the cells or the surface change.
+  const cellWidth = width / across;
+  const rowHeight = fit ? fitHeight / Math.max(rows, 1) : Math.max(36, Math.round(cellWidth * ROW_RATIO));
+  const height = fit ? fitHeight : rows * rowHeight;
+  const cells = placements.map(({ x, y, w, h }) => `${x},${y},${w},${h}`).join(' ');
+  const pieces = useMemo(
+    () =>
+      hats && width > 0 && height > 0 ? layoutHatPieces({ width, height, cell: [cellWidth, rowHeight], columns: across, rows, pieces: placements, toEdge: true, seed }) : null,
+    [hats, width, height, across, rows, cells, seed],
+  );
 
   // A grip held: the card follows the pointer through the others. A corner held: the card takes
   // the cells the pointer has moved over. Let go, it stays as it is.
@@ -138,6 +160,18 @@ export function DashboardGrid({ cards, columns, narrow, fit, width, gap, editing
     return { gridColumn: `${x + 1} / span ${w}`, gridRow: `${y + 1} / span ${h}` };
   };
 
+  if (hats) {
+    return (
+      <div ref={gridRef} className='dash-grid' data-look='hats' style={{ height: fit ? '100%' : height }}>
+        {pieces && ordered.map((card, at) => {
+          const { x, y, w, h } = placements[at];
+          const box: CSSProperties = { position: 'absolute', left: x * cellWidth, top: y * rowHeight, width: w * cellWidth, height: h * rowHeight };
+          return <CardTile key={card.id} card={card} order={at} place={box} piece={pieces[at] ?? undefined} />;
+        })}
+      </div>
+    );
+  }
+
   return (
     <div
       ref={gridRef}
@@ -192,4 +226,23 @@ export function DashboardGrid({ cards, columns, narrow, fit, width, gap, editing
       )}
     </div>
   );
+}
+
+/**
+ * The content-box height of `ref`'s element while `watching`, as a whole number of px; 0 until it is
+ * known, or when not watching.
+ */
+function useBoxHeight(ref: { current: HTMLElement | null }, watching: boolean): number {
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    const node = ref.current;
+    if (!watching || !node) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const next = Math.floor(entry.contentRect.height);
+      setHeight((was) => was === next ? was : next);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [watching]);
+  return watching ? height : 0;
 }

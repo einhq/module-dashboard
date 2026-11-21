@@ -14,6 +14,6 @@ WHICH COMMAND FOR DASHBOARDS:
   dashboard-card-add Kitchen archive.birthdays
   Never dashboard-create alone when cards were asked for. --share private only when the user says it is theirs alone.
 - Changing a card — its size, what it shows, its place, its title: dashboard-card-set <title> <id> with the flag that changes it; with none it changes nothing. Taking one off: dashboard-card-remove <title> <id>. dashboard-show first, for the id. A new card the user asks for is added even when the dashboard has one like it.
-- The dashboard itself — a new title, its colour, its columns, dimming its wall at night (--dim 22:30-06:30@0.3): dashboard-set. One laid out as another: dashboard-copy.
+- The dashboard itself — a new title, its colour, its columns, its cards as pieces of the hat tiling edge to edge (--look hats; --look cards for them apart again), dimming its wall at night (--dim 22:30-06:30@0.3): dashboard-set. One laid out as another: dashboard-copy.
 - A screen that never signs in — "put it on the hall screen": share-link create /archive/dashboards/<title>.yaml --as <account> --never. The screen sees the dashboard as that account does and changes nothing; the account is one the screen has, never an administrator.
 - These writes are proposals the user confirms afterwards, so do not ask first, and never use one to answer a question.

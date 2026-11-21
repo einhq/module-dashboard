@@ -2,7 +2,7 @@ import { CommandForm, type FormField, type FormValues, PageLoader } from '@ein/u
 import { useCommand } from '@ein/ui/hooks';
 import { shq } from '@ein/ui/lib';
 import { useSearchParams } from 'react-router-dom';
-import type { Dashboard, DashboardColor } from '../../lib/api.ts';
+import type { Dashboard, DashboardColor, DashboardLook } from '../../lib/api.ts';
 import { COLUMN_CHOICES } from '../../lib/layout.ts';
 import { COLOR_NAMES, dashboardRoute } from '../look.ts';
 
@@ -30,6 +30,15 @@ const fields: FormField[] = [
     half: true,
   },
   {
+    key: 'look',
+    label: 'Cards',
+    type: 'select',
+    options: [
+      { value: 'cards', label: 'Apart, with rounded corners' },
+      { value: 'hats', label: 'Pieces of the hat tiling, edge to edge' },
+    ] satisfies { value: DashboardLook; label: string }[],
+  },
+  {
     key: 'effects',
     label: 'On the wall',
     type: 'select',
@@ -53,12 +62,13 @@ const commandFor = (path: string, values: FormValues): string => {
     `--description ${shq(values.description?.trim() ?? '')}`,
     `--color ${shq(values.color)}`,
     `--columns ${shq(values.columns)}`,
+    `--look ${shq(values.look)}`,
     `--effects ${shq(values.effects)}`,
     from ? `--dim ${shq(`${from}-${to}${level !== undefined ? `@${level}` : ''}`)}` : '--no-dim',
   ].join(' ');
 };
 
-/** `/dashboards/settings?path=`, in the dialog from a dashboard's ⋮: its title, line, colour, columns and how its wall looks. */
+/** `/dashboards/settings?path=`, in the dialog from a dashboard's ⋮: its title, line, colour, columns and how its cards and its wall look. */
 export default function DashboardSettingsPage() {
   const [params] = useSearchParams();
   const path = params.get('path') ?? '';
@@ -70,6 +80,7 @@ export default function DashboardSettingsPage() {
     description: dashboard.description ?? '',
     color: dashboard.color,
     columns: String(dashboard.columns),
+    look: dashboard.look,
     effects: dashboard.wall.effects ?? 'full',
     dimFrom: dashboard.wall.dim?.from ?? '',
     dimTo: dashboard.wall.dim?.to ?? '',

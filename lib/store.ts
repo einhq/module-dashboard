@@ -2,8 +2,8 @@
  * Where dashboards live and how they are read and written.
  *
  * A dashboard is one YAML file in `/archive/dashboards`, named by its title: `Kitchen.yaml` is the
- * dashboard Kitchen. The file holds its layout — how many columns, how its wall looks, its cards
- * in order — and the node's attrs what describes it: `color` and `description`. A file edited by
+ * dashboard Kitchen. The file holds its layout — how many columns, how its cards and its wall look,
+ * its cards in order — and the node's attrs what describes it: `color` and `description`. A file edited by
  * hand is read for what is well-formed in it, and what is not is reported rather than refused.
  *
  * Who may see and change a dashboard is its own access: it starts out shared as the person making
@@ -14,7 +14,7 @@
 import { basename } from '@std/path';
 import { parse, stringify } from '@std/yaml';
 import { applySharePreference, type Command, type Node, type NodeAttrs, NodeNotFoundError, readSettings, resolveDefaultOwnership, shq, verifyAccess } from '@ein/client';
-import type { CardSize, CardValue, DashboardColor, DashboardSummary, PlacedCard, WallSettings } from './api.ts';
+import type { CardSize, CardValue, DashboardColor, DashboardLook, DashboardSummary, PlacedCard, WallSettings } from './api.ts';
 import { COLUMN_CHOICES, DEFAULT_COLUMNS, fitSize, pack } from './layout.ts';
 
 /** The folder every dashboard is in: the module's archive root. */
@@ -29,11 +29,14 @@ const RESERVED = new Set(['new', 'add', 'card', 'settings']);
 /** The colours a dashboard may take, `mixed` first: the hat field's accents. */
 export const COLORS: DashboardColor[] = ['mixed', 'album', 'person', 'location', 'track', 'camera', 'device', 'label', 'media', 'staging', 'system'];
 
+/** How a dashboard's cards may be drawn, the usual first. */
+export const LOOKS: DashboardLook[] = ['cards', 'hats'];
+
 /** A dashboard's attrs: its file's name and type, and what describes it. */
 export type DashboardAttrs = NodeAttrs & { name: string; mimetype: string; color?: DashboardColor; description?: string };
 
 /** A dashboard's file as read: its layout, and what in it could not be read. */
-export type DashboardFile = { columns: number; wall: WallSettings; cards: PlacedCard[]; problems: string[] };
+export type DashboardFile = { columns: number; look: DashboardLook; wall: WallSettings; cards: PlacedCard[]; problems: string[] };
 
 /** A `dashboard-*` command's failure, said to the caller as it is. */
 export class DashboardError extends Error {}
@@ -105,14 +108,20 @@ const parseDashboard = (text: string): DashboardFile => {
   try {
     raw = parse(text) ?? {};
   } catch (error) {
-    return { columns: DEFAULT_COLUMNS, wall: {}, cards: [], problems: [`the file is not YAML: ${(error as Error).message}`] };
+    return { columns: DEFAULT_COLUMNS, look: 'cards', wall: {}, cards: [], problems: [`the file is not YAML: ${(error as Error).message}`] };
   }
-  if (!isRecord(raw)) return { columns: DEFAULT_COLUMNS, wall: {}, cards: [], problems: ['the file is not a mapping'] };
+  if (!isRecord(raw)) return { columns: DEFAULT_COLUMNS, look: 'cards', wall: {}, cards: [], problems: ['the file is not a mapping'] };
 
   let columns = DEFAULT_COLUMNS;
   if (raw.columns !== undefined) {
     if ((COLUMN_CHOICES as readonly unknown[]).includes(raw.columns)) columns = raw.columns as number;
     else problems.push(`columns is one of ${COLUMN_CHOICES.join(', ')}`);
+  }
+
+  let look: DashboardLook = 'cards';
+  if (raw.look !== undefined) {
+    if (LOOKS.includes(raw.look as DashboardLook)) look = raw.look as DashboardLook;
+    else problems.push(`look is ${LOOKS.join(' or ')}`);
   }
 
   const wall: WallSettings = {};
@@ -137,13 +146,14 @@ const parseDashboard = (text: string): DashboardFile => {
     }
   }
   if (raw.cards !== undefined && !Array.isArray(raw.cards)) problems.push('cards is a list');
-  return { columns, wall, cards, problems };
+  return { columns, look, wall, cards, problems };
 };
 
-/** A dashboard's layout as its file holds it. */
-const renderDashboard = ({ columns, wall, cards }: Omit<DashboardFile, 'problems'>): string =>
+/** A dashboard's layout as its file holds it; the usual look goes without saying. */
+const renderDashboard = ({ columns, look, wall, cards }: Omit<DashboardFile, 'problems'>): string =>
   stringify({
     columns,
+    ...(look !== 'cards' ? { look } : {}),
     ...(wall.effects || wall.dim ? { wall } : {}),
     cards: cards.map(({ id, card, size, title, with: values }) => ({
       id,
@@ -205,7 +215,7 @@ export const createDashboard = async (
   const name = `${checkTitle(title)}${EXTENSION}`;
   const path = `${DASHBOARDS_ROOT}/${name}`;
   if (await cmd.sys.vfs.exists(cmd.access, path)) throw new DashboardError(`there is a dashboard called ${titleOf(path)} already`);
-  const text = renderDashboard({ columns: opts.columns ?? DEFAULT_COLUMNS, wall: {}, cards: [] });
+  const text = renderDashboard({ columns: opts.columns ?? DEFAULT_COLUMNS, look: 'cards', wall: {}, cards: [] });
 
   // Ownership comes from the system default, narrowed or widened by `share`, or by this person's
   // own preference, read from the settings files as album create reads them.
@@ -257,6 +267,7 @@ export const summarize = (
     color: COLORS.includes(node.attrs.color as DashboardColor) ? node.attrs.color as DashboardColor : 'mixed',
     ...(node.attrs.description ? { description: node.attrs.description } : {}),
     columns: file.columns,
+    look: file.look,
     tiles: placements.map((placement, at) => ({ ...placement, color: colorOf(file.cards[at]) })),
     owner: { uid: node.props.uid, ...(ownerName ? { name: ownerName } : {}) },
     ...(node.props.modtime?.timestamp ? { modified: node.props.modtime.timestamp } : {}),

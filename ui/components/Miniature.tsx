@@ -1,21 +1,47 @@
+import { layoutHatPieces } from '@ein/ui/lib';
+import { useMemo } from 'react';
 import type { DashboardSummary } from '../../lib/api.ts';
 import { accentOf, mantineOf } from '../look.ts';
 
 /** How tall a row is for a column's width, as the page lays them out, so the miniature has its shape. */
 const ROW = 0.62;
 
+/** A cell's width in px as the miniature's pieces are cut, about the page's, so their hats are in proportion. */
+const CELL = 100;
+
 /**
  * A dashboard's cover: its cards as they are laid out, each a rounded tile in its colour on the
- * chrome's ground, which a glow of the dashboard's own colour lights from a corner. An empty one
- * shows the grid it waits to fill.
+ * chrome's ground, which a glow of the dashboard's own colour lights from a corner; in the `hats`
+ * look each the piece of the tiling it is cut as, edge to edge. An empty one shows the grid it waits
+ * to fill.
  */
 export function Miniature({ dashboard }: { dashboard: DashboardSummary }) {
   const columns = dashboard.columns;
-  const rows = Math.max(dashboard.tiles.reduce((most, tile) => Math.max(most, tile.y + tile.h), 0), Math.ceil(columns / 1.5 / ROW));
+  const filled = dashboard.tiles.reduce((most, tile) => Math.max(most, tile.y + tile.h), 0);
+  const rows = Math.max(filled, Math.ceil(columns / 1.5 / ROW));
   const height = rows * ROW;
   const gap = 0.18;
   const glow = accentOf(mantineOf(dashboard.color));
   const id = `dash-mini-${dashboard.name.replace(/[^a-zA-Z0-9]/g, '')}`;
+  const hats = dashboard.look === 'hats' && dashboard.tiles.length > 0;
+  const cells = dashboard.tiles.map(({ x, y, w, h }) => `${x},${y},${w},${h}`).join(' ');
+  // Cut over the rows its cards fill, as the page cuts them: straight where they end.
+  const pieces = useMemo(
+    () =>
+      hats
+        ? layoutHatPieces({
+          width: columns * CELL,
+          height: Math.round(filled * ROW * CELL),
+          cell: [CELL, ROW * CELL],
+          columns,
+          rows: filled,
+          pieces: dashboard.tiles,
+          toEdge: true,
+          seed: dashboard.path,
+        })
+        : null,
+    [hats, columns, filled, cells, dashboard.path],
+  );
   return (
     <svg viewBox={`-0.6 -0.6 ${columns + 1.2} ${height + 1.2}`} preserveAspectRatio='xMidYMid meet' width='100%' height='100%' aria-hidden style={{ display: 'block' }}>
       <defs>
@@ -23,10 +49,33 @@ export function Miniature({ dashboard }: { dashboard: DashboardSummary }) {
           <stop offset='0' stopColor={glow} stopOpacity='0.3' />
           <stop offset='1' stopColor={glow} stopOpacity='0' />
         </radialGradient>
+        <clipPath id={`${id}-grid`}>
+          <rect width={columns} height={filled * ROW} />
+        </clipPath>
       </defs>
       <rect x={-0.6} y={-0.6} width={columns + 1.2} height={height + 1.2} fill='var(--mrx-surface-chrome)' />
       <rect x={-0.6} y={-0.6} width={columns + 1.2} height={height + 1.2} fill={`url(#${id})`} />
-      {dashboard.tiles.length === 0
+      {pieces
+        ? (
+          <g clipPath={`url(#${id}-grid)`}>
+            {pieces.map((piece, at) =>
+              piece && (
+                <path
+                  key={at}
+                  transform={`translate(${piece.box[0] / CELL} ${piece.box[1] / CELL}) scale(${1 / CELL})`}
+                  d={piece.outline}
+                  fill={`var(--mantine-color-${dashboard.tiles[at].color}-7)`}
+                  fillOpacity={0.55}
+                  stroke={`var(--mantine-color-${dashboard.tiles[at].color}-4)`}
+                  strokeOpacity={0.8}
+                  strokeWidth={6}
+                  strokeLinejoin='round'
+                />
+              )
+            )}
+          </g>
+        )
+        : dashboard.tiles.length === 0
         ? Array.from(
           { length: columns * rows },
           (_, at) => (

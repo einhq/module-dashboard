@@ -57,7 +57,12 @@ export default function ReadingCard() {
   const values = (history.data?.readings ?? []).map((reading) => reading.value).filter((value): value is number => typeof value === 'number');
 
   return (
-    <Stack h='100%' gap={0} justify='space-between' style={{ padding: '0.9em 1.1em 0.6em' }}>
+    <Stack
+      h='100%'
+      gap={0}
+      justify='space-between'
+      style={{ padding: 'var(--dash-inset-top, 0.9em) var(--dash-inset-right, 1.1em) var(--dash-inset-bottom, 0.6em) var(--dash-inset-left, 1.1em)' }}
+    >
       <Text className='dash-line' truncate>{params.get('label') || `${endpoint.label} · ${info.data.label}`}</Text>
       <div>
         <div className='dash-figure'>{endpoint.last ? readingText(endpoint.last.value, endpoint.unit) : '–'}</div>

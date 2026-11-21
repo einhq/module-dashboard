@@ -58,16 +58,19 @@ Deno.test({ name: 'dashboards', sanitizeResources: false, sanitizeOps: false }, 
     let kitchen: DashboardSummary;
     await t.step('a new dashboard is a YAML file of its title, shared as its maker shares new things', async () => {
       kitchen = await anna.execJson<DashboardSummary>("dashboard-create Kitchen --color device --description 'By the fridge'");
-      assertEquals([kitchen.path, kitchen.name, kitchen.color, kitchen.description, kitchen.columns, kitchen.tiles], [
+      assertEquals([kitchen.path, kitchen.name, kitchen.color, kitchen.description, kitchen.columns, kitchen.look, kitchen.tiles], [
         '/archive/dashboards/Kitchen.yaml',
         'Kitchen',
         'device',
         'By the fridge',
         12,
+        'cards',
         [],
       ]);
       assertEquals(kitchen.canEdit, true);
-      assertStringIncludes(await anna.execString('cat /archive/dashboards/Kitchen.yaml'), 'columns: 12');
+      const file = await anna.execString('cat /archive/dashboards/Kitchen.yaml');
+      assertStringIncludes(file, 'columns: 12');
+      assertEquals(file.includes('look'), false);
       // Another titled the same, or one a page of dashboards is named, is refused.
       assertStringIncludes((await anna.exec('dashboard-create Kitchen')).error ?? '', 'already');
       assertStringIncludes((await anna.exec('dashboard-create new')).error ?? '', 'page of dashboards');
@@ -101,23 +104,31 @@ Deno.test({ name: 'dashboards', sanitizeResources: false, sanitizeOps: false }, 
       assertEquals((await anna.execJson<Dashboard>('dashboard-show Kitchen')).cards.map((card) => card.id), [clock.id]);
     });
 
-    await t.step('the dashboard is retitled, recoloured and given a wall, and copied', async () => {
-      const set = await anna.execJson<Dashboard>("dashboard-set Kitchen --title 'Kitchen wall' --color mixed --dim 22:30-06:30@0.3 --effects light");
-      assertEquals([set.path, set.color, set.wall], ['/archive/dashboards/Kitchen wall.yaml', 'mixed', { effects: 'light', dim: { from: '22:30', to: '06:30', level: 0.3 } }]);
+    await t.step('the dashboard is retitled, recoloured, cut along the hats and given a wall, and copied', async () => {
+      const set = await anna.execJson<Dashboard>("dashboard-set Kitchen --title 'Kitchen wall' --color mixed --look hats --dim 22:30-06:30@0.3 --effects light");
+      assertEquals([set.path, set.color, set.look, set.wall], [
+        '/archive/dashboards/Kitchen wall.yaml',
+        'mixed',
+        'hats',
+        { effects: 'light', dim: { from: '22:30', to: '06:30', level: 0.3 } },
+      ]);
+      assertStringIncludes(await anna.execString("cat '/archive/dashboards/Kitchen wall.yaml'"), 'look: hats');
+      assertStringIncludes((await anna.exec("dashboard-set 'Kitchen wall' --look puzzle")).error ?? '', '--look is cards or hats');
       const copy = await anna.execJson<DashboardSummary>("dashboard-copy 'Kitchen wall' Hall");
-      assertEquals([copy.name, copy.tiles.length], ['Hall', 1]);
+      assertEquals([copy.name, copy.look, copy.tiles.length], ['Hall', 'hats', 1]);
     });
 
     await t.step("a file edited by hand is read for what is well-formed, and a gone module's card says so", async () => {
       await anna.execString(
-        `printf 'columns: 7\\ncards:\\n  - id: a1\\n    card: gone.thing\\n    size: [2, 2]\\n  - id: a2\\n    card: dashboard.note\\n    size: [3, 2]\\n  - nonsense\\n' > /archive/dashboards/Hall.yaml`,
+        `printf 'columns: 7\\nlook: puzzle\\ncards:\\n  - id: a1\\n    card: gone.thing\\n    size: [2, 2]\\n  - id: a2\\n    card: dashboard.note\\n    size: [3, 2]\\n  - nonsense\\n' > /archive/dashboards/Hall.yaml`,
       );
       const hall = await anna.execJson<Dashboard>('dashboard-show Hall');
-      assertEquals(hall.columns, 12);
+      assertEquals([hall.columns, hall.look], [12, 'cards']);
       assertEquals(hall.cards.map((card) => [card.id, card.problem !== undefined]), [['a1', true], ['a2', true]]);
       assertStringIncludes(hall.cards[0].problem!, 'gone');
       assertStringIncludes(hall.cards[1].problem!, 'text is needed');
-      assertEquals(hall.problems.length, 2);
+      assertEquals(hall.problems.length, 3);
+      assertStringIncludes(hall.problems.join('; '), 'look is cards or hats');
     });
 
     await t.step('someone else sees a dashboard only as it is shared with them', async () => {
