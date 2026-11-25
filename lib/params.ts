@@ -6,11 +6,14 @@
 
 import type { CardOffer, CardParam, CardParams, CardSize, CardValue } from './api.ts';
 
+/** A map layer as the navigation offers it, as much of it as its settings need. */
+export type OfferedLayer = { id: string; label: string; params?: { properties: Record<string, unknown> } };
+
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const NAME = /^[a-z0-9][a-z0-9-]*$/;
 const TYPES = new Set(['string', 'number', 'integer', 'boolean', 'array']);
-const FORMATS = new Set(['path', 'markdown', 'timezone', 'date', 'time']);
+const FORMATS = new Set(['path', 'markdown', 'timezone', 'date', 'time', 'position']);
 
 const isSize = (value: unknown): value is CardSize => Array.isArray(value) && value.length === 2 && value.every((n) => Number.isInteger(n) && n >= 1 && n <= 48);
 
@@ -29,8 +32,51 @@ const paramProblem = (key: string, param: unknown): string | undefined => {
     }
     if (choices.where !== undefined && !isRecord(choices.where)) return `${key}: x-choices' where is the fields an item must have, with their values`;
   }
+  if (param['x-layers'] !== undefined && !(param['x-layers'] === true && param.type === 'array')) return `${key}: x-layers is true, on a list`;
   return undefined;
 };
+
+/** The separator between a layer's id and its setting's name in a card's settings. */
+const LAYER_SETTING = '/';
+
+/**
+ * `offer` with each map layer's settings after the list of layers they belong to (`x-layers`), as
+ * `<layer>/<setting>`: what the layer takes, with a choice's `{setting}` naming the layer's own. A
+ * layer setting the form could not draw is left out. An offer with no such list is itself.
+ */
+export const withLayerSettings = (offer: CardOffer, layers: OfferedLayer[]): CardOffer => {
+  const entries = Object.entries(offer.params.properties);
+  if (!entries.some(([, param]) => param['x-layers'])) return offer;
+  const properties: Record<string, CardParam> = {};
+  for (const [name, param] of entries) {
+    properties[name] = param;
+    if (!param['x-layers']) continue;
+    for (const layer of layers) {
+      const own = Object.keys(layer.params?.properties ?? {});
+      for (const [key, raw] of Object.entries(layer.params?.properties ?? {})) {
+        if (paramProblem(key, raw) !== undefined) continue;
+        const setting = raw as CardParam;
+        const choices = setting['x-choices'];
+        properties[`${layer.id}${LAYER_SETTING}${key}`] = {
+          ...setting,
+          ...(choices
+            ? {
+              'x-choices': {
+                ...choices,
+                command: choices.command.replace(/\{([a-zA-Z0-9_-]+)\}/g, (whole, named: string) => own.includes(named) ? `{${layer.id}${LAYER_SETTING}${named}}` : whole),
+              },
+            }
+            : {}),
+          'x-layer': { id: layer.id, label: layer.label, of: name },
+        };
+      }
+    }
+  }
+  return { ...offer, params: { ...offer.params, properties } };
+};
+
+/** Whether `key` is a map layer's setting on a card that takes them, which a layer no longer offered leaves behind. */
+const layerSetting = (params: CardParams, key: string): boolean => key.includes(LAYER_SETTING) && Object.values(params.properties).some((param) => param['x-layers']);
 
 /**
  * One entry of a module's `etc/dashboard.d/cards.json` as the card it offers, or why it is not
@@ -129,8 +175,9 @@ export const problemsOf = (params: CardParams, values: Record<string, CardValue>
   const problems: string[] = [];
   for (const [key, value] of Object.entries(values)) {
     const param = params.properties[key];
-    if (!param) problems.push(`${key} is not one of its settings`);
-    else {
+    if (!param) {
+      if (!layerSetting(params, key)) problems.push(`${key} is not one of its settings`);
+    } else {
       const problem = valueProblem(key, param, value);
       if (problem) problems.push(problem);
     }

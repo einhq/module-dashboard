@@ -273,5 +273,51 @@
         }
       }
     }
+  },
+  {
+    "name": "map",
+    "label": "Map",
+    "description": "A map in the style you pick, with the layers you choose drawn on it: the archive's photos, your tracks, sea marks, or whatever else the installed modules offer.",
+    "icon": "map-2",
+    "color": "green",
+    "route": "/cards/dashboard/map",
+    "frame": "plain",
+    "size": [6, 5],
+    "min": [3, 3],
+    "params": {
+      "type": "object",
+      "properties": {
+        "style": {
+          "type": "string",
+          "title": "Map style",
+          "description": "Each viewer's own when none is chosen.",
+          "x-choices": { "command": "ui-nav", "items": "styles", "value": "id", "label": "label" }
+        },
+        "layers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "title": "Layers",
+          "x-choices": { "command": "ui-nav", "items": "layers", "value": "id", "label": "label" },
+          "x-layers": true
+        },
+        "position": {
+          "type": "string",
+          "format": "position",
+          "title": "Where it looks",
+          "description": "Empty fits the map to what its layers show, such as the stops a layer draws, or else opens it where maps open."
+        },
+        "controls": {
+          "type": "array",
+          "items": { "type": "string" },
+          "title": "Buttons",
+          "description": "Drawn over the map, for whoever looks at it; none when none is chosen.",
+          "oneOf": [
+            { "const": "style", "title": "Map style" },
+            { "const": "layers", "title": "Layers" },
+            { "const": "fullscreen", "title": "Enlarge" }
+          ]
+        }
+      }
+    }
   }
 ]

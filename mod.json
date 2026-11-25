@@ -1,9 +1,9 @@
 {
   "name": "dashboard",
-  "version": "0.2.5",
-  "description": "Dashboards: pages of cards the installed modules offer — the time, what is coming up, a picture of the day, a device's readings, a todo list — arranged by whoever makes one, shown full screen on a wall, and on screens that never sign in through a display link",
+  "version": "0.2.6",
+  "description": "Dashboards: pages of cards the installed modules offer — the time, what is coming up, a picture of the day, a device's readings, a map, a todo list — arranged by whoever makes one, shown full screen on a wall, and on screens that never sign in through a display link",
   "license": "MIT",
-  "coreApi": "^0.15.45",
+  "coreApi": "^0.15.59",
   "exports": {
     "./api": "./lib/api.ts"
   },
@@ -35,7 +35,8 @@
       "/cards/dashboard/news": "ui/cards/news.tsx",
       "/cards/dashboard/device": "ui/cards/device.tsx",
       "/cards/dashboard/reading": "ui/cards/reading.tsx",
-      "/cards/dashboard/note": "ui/cards/note.tsx"
+      "/cards/dashboard/note": "ui/cards/note.tsx",
+      "/cards/dashboard/map": "ui/cards/map.tsx"
     },
     "open": {
       "/archive/dashboards/": "/dashboards/{rest}"

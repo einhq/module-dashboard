@@ -1,5 +1,5 @@
-import { MultiSelect, NumberInput, Select, Stack, Switch, TagsInput, Textarea, TextInput } from '@mantine/core';
-import { MarkdownEditor } from '@ein/ui/components';
+import { Divider, Input, MultiSelect, NumberInput, Select, Stack, Switch, TagsInput, Textarea, TextInput } from '@mantine/core';
+import { MarkdownEditor, PositionInput } from '@ein/ui/components';
 import { shq } from '@ein/ui/lib';
 import { execCommand } from '@ein/ui/signals';
 import { useEffect, useMemo, useState } from 'react';
@@ -28,7 +28,7 @@ function useChoices(param: CardParam, values: Record<string, CardValue>): { choi
   const command = useMemo(() => {
     if (!spec) return undefined;
     let missing = false;
-    const line = spec.command.replace(/\{([a-zA-Z0-9_-]+)\}/g, (_, key: string) => {
+    const line = spec.command.replace(/\{([a-zA-Z0-9_./-]+)\}/g, (_, key: string) => {
       const value = values[key];
       if (value === undefined || value === '') missing = true;
       return shq(String(value ?? ''));
@@ -146,6 +146,13 @@ function ParamField({ name, param, required, values, onChange }: {
   if (param.format === 'timezone') {
     return <Select {...common} data={ZONES} value={text || null} onChange={(next) => onChange(next ?? undefined)} searchable clearable placeholder='The screen’s own' />;
   }
+  if (param.format === 'position') {
+    return (
+      <Input.Wrapper label={label} description={param.description} required={required}>
+        <PositionInput value={text} onChange={(next) => onChange(next || undefined)} emptyMeans={required ? undefined : 'no place of its own'} />
+      </Input.Wrapper>
+    );
+  }
   if (param.format === 'markdown') {
     return <MarkdownEditor label={label} description={param.description} required={required} value={text} onChange={(next) => onChange(next || undefined)} minRows={4} />;
   }
@@ -166,33 +173,50 @@ function ParamField({ name, param, required, values, onChange }: {
 
 /**
  * A card's settings as a form, drawn from its offer's JSON Schema: a switch, a number, a text, a
- * list, or a choice — read from the command its `x-choices` names, as the person editing — for
- * each, in the order the offer lists them.
+ * list, a place on a map, or a choice — read from the command its `x-choices` names, as the person
+ * editing — for each, in the order the offer lists them. A map layer's settings (`x-layer`) are
+ * shown under its name while it is among the layers chosen.
  */
 export function ParamsForm({ params, values, onChange }: {
   params: CardParams;
   values: Record<string, CardValue>;
   onChange: (values: Record<string, CardValue>) => void;
 }) {
-  const entries = Object.entries(params.properties);
+  const entries = Object.entries(params.properties).filter(([, param]) => {
+    const layer = param['x-layer'];
+    const chosen = layer && values[layer.of];
+    return !layer || (Array.isArray(chosen) && chosen.includes(layer.id));
+  });
   if (entries.length === 0) return null;
   return (
     <Stack gap='sm'>
-      {entries.map(([name, param]) => (
-        <ParamField
-          key={name}
-          name={name}
-          param={param}
-          required={params.required?.includes(name) ?? false}
-          values={values}
-          onChange={(value) => {
-            const next = { ...values };
-            if (value === undefined) delete next[name];
-            else next[name] = value;
-            onChange(next);
-          }}
-        />
-      ))}
+      {entries.map(([name, param], index) => {
+        const layer = param['x-layer'];
+        const first = layer && entries[index - 1]?.[1]['x-layer']?.id !== layer.id;
+        const field = (
+          <ParamField
+            key={name}
+            name={name}
+            param={param}
+            required={params.required?.includes(name) ?? false}
+            values={values}
+            onChange={(value) => {
+              const next = { ...values };
+              if (value === undefined) delete next[name];
+              else next[name] = value;
+              onChange(next);
+            }}
+          />
+        );
+        return first
+          ? (
+            <Stack key={name} gap='sm'>
+              <Divider label={layer.label} labelPosition='left' mt='xs' />
+              {field}
+            </Stack>
+          )
+          : field;
+      })}
     </Stack>
   );
 }

@@ -154,8 +154,11 @@ export type CardParam = {
   oneOf?: { const: string | number; title?: string }[];
   minimum?: number;
   maximum?: number;
-  /** `path` a node; `markdown`, `timezone`, `date` or `time` the input the form draws. */
-  format?: 'path' | 'markdown' | 'timezone' | 'date' | 'time';
+  /**
+   * `path` a node; `markdown`, `timezone`, `date` or `time` the input the form draws; `position` a
+   * place and a zoom on a map, `lat, lng, zoom`.
+   */
+  format?: 'path' | 'markdown' | 'timezone' | 'date' | 'time' | 'position';
   /** For an `array`, its items' type. */
   items?: { type: 'string' | 'number' };
   /**
@@ -165,4 +168,11 @@ export type CardParam = {
    * another parameter's value. The form runs it as the person editing.
    */
   'x-choices'?: { command: string; items?: string; value: string; label: string; where?: Record<string, CardValue> };
+  /**
+   * On a list of map layers' ids: each layer's own settings follow it among the card's, as
+   * `<layer>/<setting>`, read from the layer's `params` when the cards are listed.
+   */
+  'x-layers'?: boolean;
+  /** One map layer's setting, which the form shows while `of`, the list of layers, holds the layer `id`. */
+  'x-layer'?: { id: string; label: string; of: string };
 };

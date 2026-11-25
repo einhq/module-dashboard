@@ -1,11 +1,12 @@
 /**
  * Laying cards out and reading their parameters, as the page, the wall, the miniature and the
  * commands all do: in order from the top left, a small card filling a gap, a phone's two columns
- * keeping each card's shape, and a card's values checked, filled in and put in its route.
+ * keeping each card's shape, and a card's values checked, filled in and put in its route, a map
+ * card's with each of its layers' settings.
  */
 import { assertEquals } from '@std/assert';
 import { narrowSize, pack, resized } from '../lib/layout.ts';
-import { cardRoute, problemsOf, readOffer, valueFrom, withDefaults } from '../lib/params.ts';
+import { cardRoute, problemsOf, readOffer, valueFrom, withDefaults, withLayerSettings } from '../lib/params.ts';
 import type { CardParams } from '../lib/api.ts';
 
 Deno.test('cards are laid out in order, each at the first place it fits, and a small one fills a gap', () => {
@@ -77,4 +78,44 @@ Deno.test('an offer takes defaults for what it leaves out, and one that cannot b
     });
   assertEquals(typeof offerWith({ type: 'control' }), 'object');
   assertEquals(offerWith('control'), "demo.press: endpoint: x-choices' where is the fields an item must have, with their values");
+});
+
+Deno.test("a card that takes map layers takes each layer's settings after them, its choices naming the layer's own", () => {
+  const offer = readOffer('demo', {
+    name: 'map',
+    label: 'Map',
+    route: '/cards/demo/map',
+    size: [6, 5],
+    params: {
+      type: 'object',
+      properties: {
+        layers: { type: 'array', items: { type: 'string' }, 'x-layers': true },
+        position: { type: 'string', format: 'position' },
+      },
+    },
+  });
+  if (typeof offer === 'string') throw new Error(offer);
+  const expanded = withLayerSettings(offer, [
+    {
+      id: 'buses.vehicles',
+      label: 'Buses',
+      params: {
+        properties: {
+          stops: { type: 'array', items: { type: 'string' } },
+          lines: { type: 'array', items: { type: 'string' }, 'x-choices': { command: 'bus-lines {stops} {other}', value: 'id', label: 'name' } },
+          odd: { type: 'date' },
+        },
+      },
+    },
+    { id: 'archive.tracks', label: 'Tracks' },
+  ]);
+  assertEquals(Object.keys(expanded.params.properties), ['layers', 'buses.vehicles/stops', 'buses.vehicles/lines', 'position']);
+  assertEquals(expanded.params.properties['buses.vehicles/lines']['x-choices']?.command, 'bus-lines {buses.vehicles/stops} {other}');
+  assertEquals(expanded.params.properties['buses.vehicles/stops']['x-layer'], { id: 'buses.vehicles', label: 'Buses', of: 'layers' });
+
+  assertEquals(problemsOf(expanded.params, { layers: ['buses.vehicles'], 'buses.vehicles/lines': ['6'] }), []);
+  // A layer no longer offered leaves its settings behind without making the card a problem.
+  assertEquals(problemsOf(expanded.params, { 'gone.layer/x': 'y' }), []);
+  assertEquals(problemsOf(expanded.params, { 'stray': 'y' }), ['stray is not one of its settings']);
+  assertEquals(withLayerSettings(readOffer('demo', { name: 'clock', label: 'Clock', route: '/c', size: [2, 2] }) as typeof offer, []).params.properties, {});
 });

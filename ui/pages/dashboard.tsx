@@ -170,7 +170,7 @@ export default function DashboardPage() {
           nearby: { path: wallRoute(name), title: dashboard.name, kind: 'Dashboard' },
           items: [
             { label: 'Full screen', icon: 'arrows-maximize', button: true, onClick: wall },
-            ...(showOn ? [{ label: 'Show on…', icon: 'device-tv', onClick: () => showOn({ path: wallRoute(name), title: dashboard.name }) }] : []),
+            ...(showOn ? [{ label: 'Show on', icon: 'device-tv', onClick: () => showOn({ path: wallRoute(name), title: dashboard.name }) }] : []),
             ...editItems,
           ],
         }}

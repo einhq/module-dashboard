@@ -1,12 +1,23 @@
 /**
  * The cards the installed modules offer: each module's `etc/dashboard.d/cards.json`, which
  * `mod setup` links as `/etc/dashboard.d/<module>/cards.json`, a list of cards in the shape
- * `readOffer` reads. The dashboard names no module itself, its own cards among them.
+ * `readOffer` reads. The dashboard names no module itself, its own cards among them. A card that
+ * takes map layers takes each layer's own settings too, as the navigation offers the layers to the
+ * caller.
  */
 
-import type { Command } from '@ein/client';
+import { type Command, readUiNav } from '@ein/client';
 import type { CardOffer } from './api.ts';
-import { readOffer } from './params.ts';
+import { type OfferedLayer, readOffer, withLayerSettings } from './params.ts';
+
+/** The map layers the caller is offered; none when the navigation cannot be read. */
+const offeredLayers = async (cmd: Command): Promise<OfferedLayer[]> => {
+  try {
+    return (await readUiNav(cmd)).layers;
+  } catch {
+    return [];
+  }
+};
 
 /** Where the modules' cards are. */
 const DROP_INS = '/etc/dashboard.d';
@@ -41,5 +52,7 @@ export const readCatalog = async (cmd: Command): Promise<{ offers: CardOffer[]; 
       else offers.push(offer);
     }
   }
-  return { offers, problems };
+  const takesLayers = offers.some((offer) => Object.values(offer.params.properties).some((param) => param['x-layers']));
+  const layers = takesLayers ? await offeredLayers(cmd) : [];
+  return { offers: offers.map((offer) => withLayerSettings(offer, layers)), problems };
 };
